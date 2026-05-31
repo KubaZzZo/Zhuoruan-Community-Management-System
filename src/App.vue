@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import {
   DEPARTMENTS,
   STATUSES,
@@ -10,19 +10,38 @@ import {
 } from "./recruitment.js";
 
 const STORAGE_KEY = "zhuoruan_recruitment_applications";
-const views = ["home", "matrix", "mentor", "arsenal", "showcase", "department", "register", "admin"];
+const FORM_DRAFT_KEY = "zhuoruan_recruitment_form_draft";
+const views = [
+  "home",
+  "matrix",
+  "mentor",
+  "arsenal",
+  "showcase",
+  "activity",
+  "guide",
+  "status",
+  "department",
+  "register",
+  "admin",
+];
 const view = ref("home");
 const applications = ref([]);
 const selectedApplication = ref(null);
+const selectedSkillId = ref("java");
 const errors = ref({});
 const message = ref("");
 const messageType = ref("");
+const draftSavedAt = ref("");
 const adminUnlocked = ref(false);
 const showAdminGate = ref(false);
 const adminPassword = ref("");
 const adminLoginError = ref("");
-const coreRotation = reactive({ x: -14, y: 24 });
-const coreDrag = reactive({ active: false, x: 0, y: 0, startX: -14, startY: 24 });
+const statusQuery = reactive({
+  id: "",
+  phone: "",
+});
+const statusResult = ref(null);
+const statusMessage = ref("");
 
 const filters = reactive({
   department: "",
@@ -105,7 +124,8 @@ const departmentProfiles = [
     icon: "AI",
     summary: "拥有丰富竞赛资源，注重编码能力、沟通能力和团队协作能力培养，原则上不直接对外招新。",
     mission: "围绕高强度项目和竞赛任务培养能独立推进的人，强调实战、协作和长期成长。",
-    suitedFor: "适合已经有较强执行力、愿意承担压力、能持续投入项目的新生。该部门原则上不直接对外招新，可先加入其他部门成长。",
+    suitedFor:
+      "适合已经有较强执行力、愿意承担压力、能持续投入项目的新生。该部门原则上不直接对外招新，可先加入其他部门成长。",
     learn: ["高强度项目协作", "竞赛方案打磨", "跨部门技术与表达训练"],
     tasks: ["参与重点竞赛与项目攻坚", "协助训练新成员实战能力", "沉淀高质量项目经验"],
     basics: "建议先在研发部、项目部或产品部积累一段时间，再通过项目表现进入更高强度任务。",
@@ -213,9 +233,417 @@ const modelLogos = [
   { name: "GLM", mark: "GLM", group: "domestic" },
 ];
 const arsenalTracks = [
-  ["Backend", "后端引擎", "Java / 数据库 / 分布式架构", "构建能稳定运行的服务端系统，理解接口、数据和并发。"],
-  ["Frontend", "前端交互", "Vue3 / Three.js / UI 动效", "把想法变成可操作、可演示、可维护的用户界面。"],
-  ["AI & Ops", "智能与运维", "Docker / Multi-Agent / 自动化", "搭建模型工具链和部署流程，让项目真正跑起来。"],
+  {
+    code: "Backend",
+    title: "后端引擎",
+    stack: "Java / Spring Boot / MySQL / Redis",
+    text: "构建能稳定运行的服务端系统，理解接口、数据、权限、缓存和并发。",
+    modules: ["Java 基础", "Spring Boot", "MySQL 建模", "Redis 缓存", "接口安全"],
+    skillIds: ["java", "spring", "mysql", "redis", "security"],
+  },
+  {
+    code: "Frontend",
+    title: "前端交互",
+    stack: "HTML / CSS / JavaScript / Vue3",
+    text: "把想法变成可操作、可演示、可维护的用户界面，兼顾审美和工程质量。",
+    modules: ["响应式布局", "Vue3 组件", "Vite 工程化", "动效细节", "可访问性"],
+    skillIds: ["vue", "product", "test"],
+  },
+  {
+    code: "AI & Data",
+    title: "智能与数据",
+    stack: "Python / LLM / 数据分析 / 大数据",
+    text: "围绕模型调用、数据处理和 Agent 工作流，把 AI 能力接入真实项目。",
+    modules: ["Python 脚本", "Prompt 工程", "数据清洗", "可视化分析", "Agent 工作流"],
+    skillIds: ["python", "ai", "bigdata", "analysis", "mysql"],
+  },
+  {
+    code: "Algorithm",
+    title: "算法与基础",
+    stack: "C/C++ / 数据结构 / 算法 / 408",
+    text: "训练计算机底层思维，支撑竞赛、考研和复杂工程问题的长期能力。",
+    modules: ["C/C++ 基础", "数据结构", "算法题训练", "操作系统", "计算机网络"],
+    skillIds: ["cpp", "algorithm", "java"],
+  },
+  {
+    code: "Quality",
+    title: "测试与安全",
+    stack: "测试流程 / 自动化 / Web 安全",
+    text: "让项目不只“能跑”，还要能稳定、可验证、可排查，具备基本安全意识。",
+    modules: ["单元测试", "接口测试", "自动化测试", "权限校验", "基础安全"],
+    skillIds: ["test", "security", "vue", "spring", "docker"],
+  },
+  {
+    code: "Ops",
+    title: "运维与交付",
+    stack: "Linux / Docker / Nginx / CI",
+    text: "掌握部署、日志、容器和线上排错，让作品真正运行在服务器上。",
+    modules: ["Linux 命令", "Docker 部署", "Nginx 反代", "日志排查", "CI 构建"],
+    skillIds: ["linux", "docker", "security", "spring"],
+  },
+  {
+    code: "Full Stack",
+    title: "全栈与 API",
+    stack: "TypeScript / Node.js / Go / API Design",
+    text: "从前端交互到后端接口和服务治理，训练完整系统的拆解、联调和交付能力。",
+    modules: ["TypeScript", "Node.js", "Go", "REST API", "接口文档"],
+    skillIds: ["typescript", "node", "go", "api-design", "vue"],
+  },
+  {
+    code: "Mobile",
+    title: "移动与跨端",
+    stack: "Android / iOS / Flutter / HarmonyOS",
+    text: "面向移动端应用和跨平台展示，适合后续扩展社团工具、活动签到和移动端报名体验。",
+    modules: ["Android", "iOS", "Flutter", "鸿蒙", "移动端适配"],
+    skillIds: ["android", "ios", "flutter", "harmony", "uiux"],
+  },
+  {
+    code: "Cloud Native",
+    title: "云原生与 MLOps",
+    stack: "Kubernetes / Nginx / Cloud / MLOps",
+    text: "把项目部署、扩缩容、监控和模型服务管理串起来，为后续真实线上系统做准备。",
+    modules: ["Kubernetes", "Nginx", "云服务", "监控告警", "MLOps"],
+    skillIds: ["kubernetes", "nginx", "cloud", "mlops", "docker"],
+  },
+  {
+    code: "Product & Docs",
+    title: "产品设计与文档",
+    stack: "UI/UX / 产品 / 技术写作 / BI",
+    text: "把需求、体验、数据和文档表达清楚，让项目更容易被理解、展示和持续迭代。",
+    modules: ["UI/UX", "产品分析", "技术写作", "BI 看板", "演示材料"],
+    skillIds: ["uiux", "product", "tech-writing", "bi", "analysis"],
+  },
+  {
+    code: "CS Growth",
+    title: "计算机基础与认证",
+    stack: "408 / 软考 / 网络工程 / 架构",
+    text: "面向长期成长和升学就业，补齐计算机基础、网络、系统设计和工程表达能力。",
+    modules: ["408", "软考", "网络工程", "软件架构", "系统设计"],
+    skillIds: ["cs408", "soft-exam", "network", "architecture", "algorithm"],
+  },
+];
+const arsenalStages = [
+  ["00", "入门基础", "编程语言、Git、命令行、Markdown，把协作和表达的基础动作练稳。"],
+  ["01", "方向分流", "根据兴趣进入后端、前端、AI 数据、算法基础、测试安全或运维交付方向。"],
+  ["02", "项目实战", "参与招新系统、API 网关、竞赛 Demo、自动化脚本和数据分析任务。"],
+  ["03", "工程进阶", "补齐测试、性能、权限、部署、复盘和文档，让作品具备长期维护能力。"],
+];
+const arsenalSkillNodes = [
+  {
+    id: "java",
+    name: "Java",
+    role: "后端主语言",
+    base: "语法、面向对象、集合、异常、IO",
+    modules: ["Java SE", "面向对象", "集合框架", "JVM 入门", "代码规范"],
+    practice: "完成报名系统的接口实体、校验逻辑或后台状态流转。",
+    links: ["Spring Boot", "MySQL", "Redis", "算法"],
+  },
+  {
+    id: "python",
+    name: "Python",
+    role: "AI 与自动化脚本入口",
+    base: "语法、文件处理、HTTP 请求、数据清洗",
+    modules: ["Python 基础", "爬虫与接口", "数据处理", "可视化", "AI SDK 调用"],
+    practice: "写一个报名数据清洗脚本，或接入 API 网关完成 AI 自动摘要。",
+    links: ["AI", "大数据", "数据分析", "测试"],
+  },
+  {
+    id: "vue",
+    name: "Vue3",
+    role: "前端应用框架",
+    base: "HTML、CSS、JavaScript、组件化思维",
+    modules: ["Composition API", "组件拆分", "状态管理", "表单交互", "Vite 构建"],
+    practice: "继续迭代招新网站页面、部门详情页和管理后台交互。",
+    links: ["产品", "测试", "Docker", "Spring Boot"],
+  },
+  {
+    id: "spring",
+    name: "Spring Boot",
+    role: "后端工程框架",
+    base: "Java、HTTP、MVC、依赖注入",
+    modules: ["Controller", "Service", "Repository", "登录鉴权", "接口文档"],
+    practice: "把当前 localStorage 报名数据迁移为真实后端接口。",
+    links: ["Java", "MySQL", "Redis", "安全"],
+  },
+  {
+    id: "mysql",
+    name: "MySQL",
+    role: "关系型数据存储",
+    base: "表结构、SQL、索引、事务",
+    modules: ["表设计", "CRUD", "索引优化", "事务", "备份"],
+    practice: "设计报名表、部门表、管理员表和审核记录表。",
+    links: ["Java", "Spring Boot", "数据分析", "安全"],
+  },
+  {
+    id: "redis",
+    name: "Redis",
+    role: "缓存与状态加速",
+    base: "Key-Value、过期时间、缓存策略",
+    modules: ["缓存", "计数器", "验证码", "限流", "会话"],
+    practice: "为后台登录、报名统计或接口限流设计缓存方案。",
+    links: ["Spring Boot", "安全", "Linux", "Docker"],
+  },
+  {
+    id: "linux",
+    name: "Linux",
+    role: "服务器基本功",
+    base: "命令行、文件权限、进程、日志",
+    modules: ["常用命令", "用户权限", "进程管理", "日志排查", "Shell"],
+    practice: "把 Vite 构建产物部署到服务器并配置静态站点。",
+    links: ["Docker", "Nginx", "安全", "测试"],
+  },
+  {
+    id: "docker",
+    name: "Docker",
+    role: "容器化交付",
+    base: "镜像、容器、端口、卷、Compose",
+    modules: ["Dockerfile", "Compose", "镜像构建", "环境变量", "服务编排"],
+    practice: "为前端、后端和数据库写一套本地演示环境。",
+    links: ["Linux", "Spring Boot", "MySQL", "测试"],
+  },
+  {
+    id: "cpp",
+    name: "C/C++",
+    role: "底层与算法基础",
+    base: "指针、内存、结构体、STL",
+    modules: ["C 语法", "C++ STL", "内存模型", "数据结构", "算法训练"],
+    practice: "用 C++ 完成基础算法题和数据结构实现。",
+    links: ["算法", "Linux", "408", "安全"],
+  },
+  {
+    id: "algorithm",
+    name: "算法",
+    role: "问题拆解能力",
+    base: "复杂度、数组、链表、树、图",
+    modules: ["复杂度", "排序搜索", "动态规划", "图论", "刷题复盘"],
+    practice: "每周完成一组算法题，并写复盘说明解题思路。",
+    links: ["C/C++", "Java", "数据结构", "竞赛"],
+  },
+  {
+    id: "test",
+    name: "测试",
+    role: "质量保障",
+    base: "用例设计、断言、接口检查、回归测试",
+    modules: ["单元测试", "页面测试", "接口测试", "自动化测试", "Bug 复盘"],
+    practice: "为报名校验、后台筛选、页面结构写稳定测试。",
+    links: ["Vue3", "Spring Boot", "Docker", "安全"],
+  },
+  {
+    id: "security",
+    name: "安全",
+    role: "权限与风险意识",
+    base: "登录、鉴权、输入校验、敏感信息保护",
+    modules: ["Token", "权限控制", "XSS", "SQL 注入", "日志脱敏"],
+    practice: "把当前前端口令升级为后端登录和角色权限方案。",
+    links: ["Spring Boot", "MySQL", "测试", "Linux"],
+  },
+  {
+    id: "ai",
+    name: "AI",
+    role: "智能应用能力",
+    base: "模型调用、Prompt、上下文、工具调用",
+    modules: ["LLM API", "Prompt 设计", "RAG 入门", "Agent", "工作流"],
+    practice: "基于 api.zhuoruan.xyz 做报名摘要、FAQ 助手或项目文档生成。",
+    links: ["Python", "数据分析", "大数据", "产品"],
+  },
+  {
+    id: "bigdata",
+    name: "大数据",
+    role: "批量数据处理",
+    base: "数据采集、清洗、统计、可视化",
+    modules: ["数据采集", "清洗转换", "统计分析", "可视化", "数据看板"],
+    practice: "对报名来源、部门意向、审核状态做统计看板。",
+    links: ["Python", "MySQL", "数据分析", "AI"],
+  },
+  {
+    id: "product",
+    name: "产品",
+    role: "需求与体验设计",
+    base: "用户场景、流程图、原型、文案",
+    modules: ["需求分析", "原型设计", "竞品分析", "交互细节", "演示表达"],
+    practice: "设计部门详情、报名转化和后台审核流程的产品方案。",
+    links: ["Vue3", "数据分析", "AI", "测试"],
+  },
+  {
+    id: "analysis",
+    name: "数据分析",
+    role: "从数据里找判断",
+    base: "指标、表格、图表、结论表达",
+    modules: ["Excel", "SQL 查询", "Python 分析", "图表表达", "结论复盘"],
+    practice: "输出招新报名趋势、部门热度和面试转化分析。",
+    links: ["Python", "MySQL", "大数据", "产品"],
+  },
+  {
+    id: "typescript",
+    name: "TypeScript",
+    role: "大型前端和全栈项目类型系统",
+    base: "JavaScript、类型、接口、泛型",
+    modules: ["类型标注", "接口设计", "泛型", "工程配置", "类型收窄"],
+    practice: "把复杂表单、API 返回值和后台筛选条件抽成类型清晰的数据结构。",
+    links: ["Vue3", "Node.js", "API 设计", "测试"],
+  },
+  {
+    id: "node",
+    name: "Node.js",
+    role: "JavaScript 服务端与工具链",
+    base: "JavaScript、npm、HTTP、异步编程",
+    modules: ["Express", "文件处理", "接口服务", "脚本工具", "构建工具"],
+    practice: "为招新数据写一个导出、校验或批处理脚本服务。",
+    links: ["TypeScript", "API 设计", "Docker", "测试"],
+  },
+  {
+    id: "go",
+    name: "Go",
+    role: "高并发服务与云原生语言",
+    base: "语法、结构体、接口、协程",
+    modules: ["Go 基础", "Goroutine", "HTTP 服务", "并发模型", "CLI 工具"],
+    practice: "写一个轻量 API 健康检查或日志分析工具。",
+    links: ["Docker", "Linux", "Kubernetes", "API 设计"],
+  },
+  {
+    id: "api-design",
+    name: "API 设计",
+    role: "前后端协作契约",
+    base: "HTTP、REST、状态码、JSON、鉴权",
+    modules: ["REST 规范", "状态码", "接口文档", "错误码", "版本管理"],
+    practice: "为报名提交、审核状态、部门详情设计一套后端接口草案。",
+    links: ["Spring Boot", "Node.js", "测试", "安全"],
+  },
+  {
+    id: "android",
+    name: "Android",
+    role: "安卓应用开发",
+    base: "Kotlin/Java、Activity、布局、网络请求",
+    modules: ["Kotlin", "Jetpack", "网络请求", "本地存储", "移动 UI"],
+    practice: "设计一个社团活动签到或报名查询移动端原型。",
+    links: ["Java", "UI/UX", "API 设计", "测试"],
+  },
+  {
+    id: "ios",
+    name: "iOS",
+    role: "苹果生态应用开发",
+    base: "Swift、SwiftUI、状态、网络请求",
+    modules: ["Swift", "SwiftUI", "列表表单", "网络层", "App 打包"],
+    practice: "把招新报名流程改造成 iOS 原型页面。",
+    links: ["UI/UX", "API 设计", "产品", "测试"],
+  },
+  {
+    id: "flutter",
+    name: "Flutter",
+    role: "跨平台移动开发",
+    base: "Dart、Widget、布局、状态管理",
+    modules: ["Dart", "Widget", "路由", "状态管理", "跨端打包"],
+    practice: "做一个可同时演示安卓和 iOS 的社团工具原型。",
+    links: ["Android", "iOS", "UI/UX", "API 设计"],
+  },
+  {
+    id: "harmony",
+    name: "鸿蒙",
+    role: "国产移动生态方向",
+    base: "ArkTS、组件、页面路由、设备适配",
+    modules: ["ArkTS", "声明式 UI", "路由", "数据绑定", "多端适配"],
+    practice: "探索招新展示页或活动通知页的鸿蒙端实现。",
+    links: ["UI/UX", "产品", "API 设计", "测试"],
+  },
+  {
+    id: "kubernetes",
+    name: "Kubernetes",
+    role: "容器编排与服务治理",
+    base: "Docker、Linux、YAML、服务发现",
+    modules: ["Pod", "Deployment", "Service", "ConfigMap", "Ingress"],
+    practice: "把前后端和数据库拆成可编排的演示环境。",
+    links: ["Docker", "Linux", "Nginx", "云服务"],
+  },
+  {
+    id: "nginx",
+    name: "Nginx",
+    role: "反向代理与静态资源服务",
+    base: "HTTP、域名、端口、配置文件",
+    modules: ["静态托管", "反向代理", "HTTPS", "缓存", "日志"],
+    practice: "为招新网站配置生产静态资源和 API 反向代理。",
+    links: ["Linux", "Docker", "安全", "云服务"],
+  },
+  {
+    id: "cloud",
+    name: "云服务",
+    role: "线上部署与资源管理",
+    base: "服务器、域名、对象存储、数据库",
+    modules: ["云服务器", "域名解析", "对象存储", "数据库服务", "监控"],
+    practice: "设计一套从代码到线上访问的部署链路。",
+    links: ["Linux", "Docker", "Nginx", "MLOps"],
+  },
+  {
+    id: "mlops",
+    name: "MLOps",
+    role: "模型服务工程化",
+    base: "AI、Python、API、监控、成本意识",
+    modules: ["模型部署", "调用监控", "成本统计", "评测集", "回滚策略"],
+    practice: "为社团 API 网关设计模型调用监控和成本看板。",
+    links: ["AI", "Python", "云服务", "大数据"],
+  },
+  {
+    id: "uiux",
+    name: "UI/UX",
+    role: "体验与界面设计",
+    base: "信息架构、排版、交互、可用性",
+    modules: ["用户路径", "低保真原型", "视觉规范", "动效", "可用性测试"],
+    practice: "优化报名页、部门详情和后台审核流程的用户体验。",
+    links: ["产品", "Vue3", "数据分析", "测试"],
+  },
+  {
+    id: "tech-writing",
+    name: "技术写作",
+    role: "把技术讲清楚",
+    base: "Markdown、结构化表达、图示、复盘",
+    modules: ["README", "接口文档", "项目复盘", "教程", "答辩材料"],
+    practice: "为招新系统写开发说明、部署文档和用户手册。",
+    links: ["产品", "API 设计", "测试", "数据分析"],
+  },
+  {
+    id: "bi",
+    name: "BI",
+    role: "业务数据看板",
+    base: "指标、SQL、图表、筛选器",
+    modules: ["指标体系", "SQL 聚合", "图表组件", "数据看板", "结论表达"],
+    practice: "做一个展示报名人数、部门热度和审核进度的管理看板。",
+    links: ["数据分析", "MySQL", "产品", "大数据"],
+  },
+  {
+    id: "cs408",
+    name: "408",
+    role: "计算机专业基础",
+    base: "数据结构、计组、操作系统、计网",
+    modules: ["数据结构", "计算机组成", "操作系统", "计算机网络", "真题复盘"],
+    practice: "把项目中遇到的缓存、网络、进程和数据结构问题映射到基础课。",
+    links: ["算法", "C/C++", "网络工程", "Linux"],
+  },
+  {
+    id: "soft-exam",
+    name: "软考",
+    role: "工程与管理认证方向",
+    base: "软件工程、项目管理、数据库、网络",
+    modules: ["软件设计", "项目管理", "数据库", "网络基础", "案例分析"],
+    practice: "用社团项目训练需求分析、系统设计和项目管理表达。",
+    links: ["产品", "架构", "技术写作", "数据库"],
+  },
+  {
+    id: "network",
+    name: "网络工程",
+    role: "网络与基础设施",
+    base: "TCP/IP、DNS、HTTP、路由、安全",
+    modules: ["TCP/IP", "DNS", "HTTP", "路由交换", "抓包分析"],
+    practice: "排查域名解析、HTTPS、API 访问和服务器端口问题。",
+    links: ["Linux", "Nginx", "安全", "408"],
+  },
+  {
+    id: "architecture",
+    name: "架构",
+    role: "系统设计能力",
+    base: "模块边界、数据流、接口、部署、扩展性",
+    modules: ["分层架构", "领域建模", "接口契约", "扩展性", "可观测性"],
+    practice: "为社团管理系统画出前后端、数据库、权限和部署架构图。",
+    links: ["Spring Boot", "API 设计", "云服务", "技术写作"],
+  },
 ];
 const achievements = ["开源项目孵化", "竞赛作品打磨", "社团工具建设", "跨部门产品协作"];
 const showcaseProjects = [
@@ -248,26 +676,90 @@ const showcaseProjects = [
     result: "算力资源基础设施",
   },
 ];
-
-function startCoreDrag(event) {
-  coreDrag.active = true;
-  coreDrag.x = event.clientX;
-  coreDrag.y = event.clientY;
-  coreDrag.startX = coreRotation.x;
-  coreDrag.startY = coreRotation.y;
-  event.currentTarget.setPointerCapture?.(event.pointerId);
-}
-
-function moveCoreDrag(event) {
-  if (!coreDrag.active) return;
-  coreRotation.y = coreDrag.startY + (event.clientX - coreDrag.x) * 0.35;
-  coreRotation.x = Math.max(-38, Math.min(38, coreDrag.startX - (event.clientY - coreDrag.y) * 0.25));
-}
-
-function stopCoreDrag(event) {
-  coreDrag.active = false;
-  event.currentTarget.releasePointerCapture?.(event.pointerId);
-}
+const activityFeeds = [
+  {
+    type: "活动照片",
+    title: "近期社团活动记录",
+    text: "预留活动照片与现场简讯位置，后期可替换为招新宣讲、技术分享或项目路演素材。",
+    meta: "Photo / 待补充",
+  },
+  {
+    type: "竞赛速报",
+    title: "竞赛获奖与立项动态",
+    text: "预留国家级、省级、校级竞赛成果位，用于展示团队近期获奖、入围或项目推进消息。",
+    meta: "Awards / 待补充",
+  },
+  {
+    type: "技术分享",
+    title: "下一场内部分享",
+    text: "预留分享主题、主讲人、时间和地点，可用于发布 Spring Boot、Vue3、AI Agent 等培训预告。",
+    meta: "Talk / 待补充",
+  },
+  {
+    type: "项目里程碑",
+    title: "API 网关与内部工具进展",
+    text: "预留社团项目里程碑，例如模型接入数量、工具上线、版本发布和训练营任务完成情况。",
+    meta: "Milestone / 待补充",
+  },
+];
+const onboardingSteps = [
+  "配置 Git 与 GitHub 账号，学会提交第一条 commit。",
+  "安装 Node.js，运行 npm install 与 npm run dev。",
+  "阅读项目目录，理解 index.html、src/App.vue、styles.css 的关系。",
+  "从一个小样式或文案问题开始，提交第一个 PR。",
+];
+const resourceLinks = [
+  { name: "社团网盘", value: "待补充" },
+  { name: "内部文档", value: "待补充" },
+  { name: "推荐网课列表", value: "待补充" },
+  { name: "项目任务看板", value: "待补充" },
+];
+const faqItems = [
+  {
+    question: "我不会编程能报名吗？",
+    answer: "可以。研发和项目方向需要持续补基础，组织、外联、产品方向更看重表达、执行、审美和协作能力。",
+  },
+  {
+    question: "面试主要看什么？",
+    answer: "主要看真实经历、学习意愿、沟通表达和能否稳定完成任务。有项目、作品或活动经历可以重点展示。",
+  },
+  {
+    question: "如何选择部门？",
+    answer: "先看部门详情页和快速自测。喜欢写代码可优先研发，喜欢推进竞赛可看项目，喜欢表达设计可看产品或外联。",
+  },
+  {
+    question: "入社第一周做什么？",
+    answer: "完成环境配置、跑通项目、认识协作流程，并领取一个足够小的入门任务。",
+  },
+];
+const memberWall = [
+  { name: "成员 A", department: "研发部", direction: "Spring Boot / API", link: "待补充" },
+  { name: "成员 B", department: "产品部", direction: "UI/UX / 原型", link: "待补充" },
+  { name: "成员 C", department: "项目部", direction: "竞赛 / 数据分析", link: "待补充" },
+  { name: "成员 D", department: "实干青年部", direction: "AI / Flutter", link: "待补充" },
+];
+const departmentChoiceCards = [
+  {
+    question: "更喜欢写代码、拆问题、调 bug？",
+    answer: "优先看研发部；如果还想做竞赛交付，可以同时了解项目部。",
+    departments: ["研发部", "项目部"],
+  },
+  {
+    question: "更喜欢沟通、组织资源、跑活动？",
+    answer: "优先看外联部和组织部，重点展示责任心、表达和执行记录。",
+    departments: ["外联部", "组织部"],
+  },
+  {
+    question: "更喜欢设计体验、整理需求、做展示？",
+    answer: "优先看产品部；如果愿意参与高强度项目，可再了解实干青年部。",
+    departments: ["产品部", "实干青年部"],
+  },
+];
+const formGuideSteps = [
+  { code: "01", title: "身份载入", text: "姓名、学院、班级、专业等基础信息。" },
+  { code: "02", title: "通信握手", text: "电话、QQ、意向部门与是否服从调剂。" },
+  { code: "03", title: "能力画像", text: "特长、获奖、经历和职业规划。" },
+];
 
 function createEmptyForm() {
   return {
@@ -320,6 +812,13 @@ const formCompletion = computed(() => {
 const selectedDepartment = computed(
   () => departmentProfiles.find((item) => item.id === selectedDepartmentId.value) || departmentProfiles[0],
 );
+const selectedSkill = computed(
+  () => arsenalSkillNodes.find((item) => item.id === selectedSkillId.value) || arsenalSkillNodes[0],
+);
+const relatedArsenalTracks = computed(() => {
+  const tracks = arsenalTracks.filter((track) => track.skillIds.includes(selectedSkill.value.id));
+  return tracks.length ? tracks : arsenalTracks.slice(0, 3);
+});
 
 function syncViewFromHash() {
   const next = window.location.hash.replace("#", "") || "home";
@@ -362,6 +861,15 @@ function applyDepartmentAndRegister(departmentName) {
   go("register");
 }
 
+function selectSkillByName(skillName) {
+  const nextSkill = arsenalSkillNodes.find((item) => item.name === skillName);
+  if (nextSkill) selectedSkillId.value = nextSkill.id;
+}
+
+function hasSkillNode(skillName) {
+  return arsenalSkillNodes.some((item) => item.name === skillName);
+}
+
 function submitAdminGate() {
   if (adminPassword.value !== "zhuoruan2026") {
     adminLoginError.value = "管理员口令错误";
@@ -378,7 +886,7 @@ function submitAdminGate() {
 function loadApplications() {
   try {
     applications.value = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch (error) {
+  } catch {
     applications.value = [];
   }
 }
@@ -387,13 +895,50 @@ function saveApplications() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(applications.value));
 }
 
+function hasFormContent(payload) {
+  return Object.values(payload).some((value) => String(value || "").trim());
+}
+
+function loadFormDraft() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FORM_DRAFT_KEY));
+    if (saved && typeof saved === "object") {
+      Object.assign(form, createEmptyForm(), saved);
+      draftSavedAt.value = saved.savedAt || "已恢复上次草稿";
+    }
+  } catch {
+    localStorage.removeItem(FORM_DRAFT_KEY);
+  }
+}
+
+function saveFormDraft() {
+  const payload = { ...form };
+  if (!hasFormContent(payload)) {
+    localStorage.removeItem(FORM_DRAFT_KEY);
+    draftSavedAt.value = "";
+    return;
+  }
+  const savedAt = new Date().toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  localStorage.setItem(FORM_DRAFT_KEY, JSON.stringify({ ...payload, savedAt }));
+  draftSavedAt.value = `草稿已自动保存 ${savedAt}`;
+}
+
+function clearFormDraft() {
+  localStorage.removeItem(FORM_DRAFT_KEY);
+  draftSavedAt.value = "";
+}
+
 function onPhotoChange(event) {
   const file = event.target.files && event.target.files[0];
   form.photoName = file ? file.name : "";
 }
 
-function resetForm() {
+function resetForm(clearDraft = false) {
   Object.assign(form, createEmptyForm());
+  if (clearDraft) clearFormDraft();
 }
 
 function submitApplication() {
@@ -408,10 +953,30 @@ function submitApplication() {
   const record = createRecruitmentRecord(form);
   applications.value = [record, ...applications.value];
   saveApplications();
-  resetForm();
+  resetForm(true);
   errors.value = {};
+  statusQuery.id = record.id;
+  statusQuery.phone = record.phone;
   message.value = `报名成功，编号：${record.id}。请留意 QQ 或电话通知。`;
   messageType.value = "success";
+}
+
+function searchApplicationStatus() {
+  const id = statusQuery.id.trim();
+  const phone = statusQuery.phone.trim();
+  statusResult.value = null;
+  statusMessage.value = "";
+  if (!id || !phone) {
+    statusMessage.value = "请输入报名编号和手机号。";
+    return;
+  }
+  loadApplications();
+  const record = applications.value.find((item) => item.id === id && item.phone === phone);
+  if (!record) {
+    statusMessage.value = "没有查到匹配记录，请确认编号和手机号是否一致。";
+    return;
+  }
+  statusResult.value = record;
 }
 
 function updateStatus(record, status) {
@@ -423,10 +988,13 @@ function updateStatus(record, status) {
 onMounted(() => {
   syncViewFromHash();
   loadApplications();
+  loadFormDraft();
   window.addEventListener("hashchange", syncViewFromHash);
 });
 
 onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
+
+watch(form, saveFormDraft, { deep: true });
 </script>
 
 <template>
@@ -436,9 +1004,20 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
       <a href="#home" :class="{ active: view === 'home' }" @click.prevent="go('home')">宣传首页</a>
       <a href="#matrix" :class="{ active: view === 'matrix' }" @click.prevent="go('matrix')">算力矩阵</a>
       <a href="#mentor" :class="{ active: view === 'mentor' }" @click.prevent="go('mentor')">导师资源</a>
-      <a href="#arsenal" :class="{ active: view === 'arsenal' }" @click.prevent="go('arsenal')">技术兵器谱</a>
+      <a href="#arsenal" :class="{ active: view === 'arsenal' }" @click.prevent="go('arsenal')">技术成长图谱</a>
       <a href="#showcase" :class="{ active: view === 'showcase' }" @click.prevent="go('showcase')">开源展厅</a>
       <a href="#register" :class="{ active: view === 'register' }" @click.prevent="go('register')">招新报名</a>
+      <details
+        class="nav-more"
+        :class="{ active: ['matrix', 'mentor', 'arsenal', 'showcase', 'activity', 'guide', 'status'].includes(view) }"
+      >
+        <summary>更多</summary>
+        <div class="nav-more-menu">
+          <a href="#activity" :class="{ active: view === 'activity' }" @click.prevent="go('activity')">社团动态</a>
+          <a href="#guide" :class="{ active: view === 'guide' }" @click.prevent="go('guide')">新生指南</a>
+          <a href="#status" :class="{ active: view === 'status' }" @click.prevent="go('status')">报名查询</a>
+        </div>
+      </details>
     </nav>
     <button class="admin-entry" type="button" @click="go('admin')">管理员入口</button>
   </header>
@@ -469,15 +1048,16 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
             :key="line"
             class="typewriter-line"
             :style="{ '--line-delay': `${index * 0.42}s` }"
-          >{{ line }}</span>
+            >{{ line }}</span
+          >
         </div>
         <p class="eyebrow">The Awakening / 江苏师范大学科文学院</p>
         <h1>卓软信息工作室</h1>
-        <p class="hero-copy">
-          不要在平庸的代码里浪费天赋。卓软，重塑你的极客基因。
-        </p>
+        <p class="hero-copy">不要在平庸的代码里浪费天赋。卓软，重塑你的极客基因。</p>
         <div class="hero-actions">
-          <button class="primary-action neon-action" type="button" @click="go('register')">[ Initiate Join Sequence_ ]</button>
+          <button class="primary-action neon-action" type="button" @click="go('register')">
+            [ Initiate Join Sequence_ ]
+          </button>
           <button class="secondary-action" type="button" @click="go('matrix')">查看算力矩阵</button>
         </div>
         <div class="hero-metrics" aria-label="社团能力方向">
@@ -486,25 +1066,29 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
           <div><strong>24h</strong><span>项目训练场</span></div>
         </div>
       </div>
-      <div
-        class="server-orbit cyber-core-stage"
-        aria-label="可拖拽旋转的赛博核心"
-        @pointerdown="startCoreDrag"
-        @pointermove="moveCoreDrag"
-        @pointerup="stopCoreDrag"
-        @pointerleave="stopCoreDrag"
-      >
-        <div
-          class="server-core cyber-core"
-          :style="{ transform: `rotateX(${coreRotation.x}deg) rotateY(${coreRotation.y}deg)` }"
-        >
-          <span class="core-face core-front"></span>
-          <span class="core-face core-back"></span>
-          <span class="core-face core-left"></span>
-          <span class="core-face core-right"></span>
-          <span class="core-face core-top"></span>
-          <span class="core-face core-bottom"></span>
-          <i></i>
+      <div class="hero-console-stage" aria-label="卓软代码中枢示意">
+        <div class="console-orbit" aria-hidden="true">
+          <span>API</span>
+          <span>AI</span>
+          <span>Vue</span>
+          <span>Java</span>
+        </div>
+        <div class="hero-console">
+          <div class="console-topbar">
+            <span></span><span></span><span></span>
+            <strong>zr-core.sh</strong>
+          </div>
+          <div class="console-screen">
+            <p>&gt; boot zhuoruan.workspace</p>
+            <p>&gt; connect api.zhuoruan.xyz</p>
+            <p>&gt; load mentor.resources</p>
+            <p>&gt; deploy project.showcase</p>
+          </div>
+          <div class="console-metrics">
+            <span>API</span>
+            <span>CODE</span>
+            <span>AGENT</span>
+          </div>
         </div>
         <p>ZR-CORE ONLINE</p>
       </div>
@@ -535,6 +1119,36 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
           </button>
         </article>
       </div>
+      <div class="choice-helper">
+        <div class="section-heading compact">
+          <p class="eyebrow">Fit Helper</p>
+          <h2>不知道选哪个部门？</h2>
+        </div>
+        <div class="choice-grid">
+          <article v-for="item in departmentChoiceCards" :key="item.question" class="choice-card">
+            <h3>{{ item.question }}</h3>
+            <p>{{ item.answer }}</p>
+            <div>
+              <span v-for="department in item.departments" :key="department">{{ department }}</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section activity-preview">
+      <div class="section-heading">
+        <p class="eyebrow">Live Feed</p>
+        <h2>社团正在发生什么</h2>
+      </div>
+      <div class="activity-strip">
+        <article v-for="item in activityFeeds.slice(0, 3)" :key="item.title">
+          <span>{{ item.type }}</span>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.text }}</p>
+        </article>
+      </div>
+      <button class="secondary-action dark-action" type="button" @click="go('activity')">查看社团动态</button>
     </section>
 
     <section class="section process-section">
@@ -569,7 +1183,11 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
         <h1>{{ selectedDepartment.name }}</h1>
         <p>{{ selectedDepartment.mission }}</p>
         <div class="department-detail-actions">
-          <button class="primary-action neon-action" type="button" @click="applyDepartmentAndRegister(selectedDepartment.name)">
+          <button
+            class="primary-action neon-action"
+            type="button"
+            @click="applyDepartmentAndRegister(selectedDepartment.name)"
+          >
             选择该部门并报名
           </button>
           <button class="secondary-action" type="button" @click="go('home')">返回部门列表</button>
@@ -672,10 +1290,12 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
       <div>
         <p class="eyebrow">Mentor System</p>
         <h1>导师资源</h1>
-        <p>把“有人带、能落地、能复盘”讲清楚。导师资源页专门展示社团在架构、竞赛和 AI 工程方向能给新生提供的指导路径。</p>
+        <p>
+          把“有人带、能落地、能复盘”讲清楚。导师资源页专门展示社团在架构、竞赛和 AI 工程方向能给新生提供的指导路径。
+        </p>
         <div class="mentor-actions">
           <button class="primary-action neon-action" type="button" @click="go('register')">申请加入训练序列</button>
-          <button class="secondary-action" type="button" @click="go('arsenal')">查看技术兵器谱</button>
+          <button class="secondary-action" type="button" @click="go('arsenal')">查看技术成长图谱</button>
         </div>
       </div>
       <div class="mentor-terminal" aria-hidden="true">
@@ -705,25 +1325,77 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
 
   <main v-else-if="view === 'arsenal'" class="page-shell cyber-page">
     <section class="page-title">
-      <p class="eyebrow">Tech Arsenal</p>
-      <h1>技术兵器谱</h1>
-      <p>用清晰的技术方向告诉新生：加入后能学什么、做什么、把作品推进到什么程度。</p>
+      <p class="eyebrow">Tech Growth Map</p>
+      <h1>技术成长图谱</h1>
+      <p>参考常见计算机网课方向，整理成适合社团训练的学习图谱：先补基础，再选方向，最后进入项目实战。</p>
+    </section>
+
+    <section class="arsenal-roadmap" aria-label="技术学习路线">
+      <article v-for="[step, title, text] in arsenalStages" :key="step">
+        <span>{{ step }}</span>
+        <h2>{{ title }}</h2>
+        <p>{{ text }}</p>
+      </article>
     </section>
 
     <section class="arsenal-layout">
       <div class="skill-tree" aria-label="技能树示意">
-        <button class="tech-logo active" type="button">Vue3</button>
-        <button class="tech-logo" type="button">Java</button>
-        <button class="tech-logo" type="button">AI</button>
-        <button class="tech-logo" type="button">Docker</button>
+        <button
+          v-for="node in arsenalSkillNodes"
+          :key="node.id"
+          class="tech-logo"
+          :class="{ active: selectedSkill.id === node.id }"
+          type="button"
+          @click="selectedSkillId = node.id"
+        >
+          {{ node.name }}
+        </button>
       </div>
-      <div class="arsenal-list">
-        <article v-for="[code, title, stack, text] in arsenalTracks" :key="code">
-          <p>{{ code }}</p>
-          <h2>{{ title }}</h2>
-          <strong>{{ stack }}</strong>
-          <span>{{ text }}</span>
-        </article>
+      <div class="arsenal-detail-column">
+        <section class="skill-detail-panel">
+          <p class="eyebrow">Selected Node</p>
+          <h2>{{ selectedSkill.name }}</h2>
+          <strong>{{ selectedSkill.role }}</strong>
+          <p>{{ selectedSkill.base }}</p>
+          <div class="skill-detail-grid">
+            <div>
+              <span>学习模块</span>
+              <em v-for="module in selectedSkill.modules" :key="module">{{ module }}</em>
+            </div>
+            <div>
+              <span>实践任务</span>
+              <p>{{ selectedSkill.practice }}</p>
+            </div>
+          </div>
+          <div class="skill-links">
+            <span>关联节点</span>
+            <button
+              v-for="link in selectedSkill.links"
+              :key="link"
+              type="button"
+              :class="{ linked: hasSkillNode(link) }"
+              @click="selectSkillByName(link)"
+            >
+              {{ link }}
+            </button>
+          </div>
+        </section>
+
+        <div class="arsenal-related-heading">
+          <p class="eyebrow">Related Tracks</p>
+          <h2>{{ selectedSkill.name }} 推荐方向</h2>
+        </div>
+        <div class="arsenal-list">
+          <article v-for="track in relatedArsenalTracks" :key="track.code">
+            <p>{{ track.code }}</p>
+            <h2>{{ track.title }}</h2>
+            <strong>{{ track.stack }}</strong>
+            <span>{{ track.text }}</span>
+            <div class="arsenal-modules">
+              <em v-for="module in track.modules" :key="module">{{ module }}</em>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -743,7 +1415,9 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
       <div>
         <p class="eyebrow">Project Signal</p>
         <h2>从赛题到系统，从想法到部署</h2>
-        <p>这里不堆空洞截图，而是展示项目背后的技术栈、协作方式、架构取舍和交付结果。真实材料补齐后，每张卡都可以替换为对应项目链接、仓库地址或演示视频。</p>
+        <p>
+          这里不堆空洞截图，而是展示项目背后的技术栈、协作方式、架构取舍和交付结果。真实材料补齐后，每张卡都可以替换为对应项目链接、仓库地址或演示视频。
+        </p>
       </div>
       <div class="architecture-map" aria-hidden="true">
         <span>Client</span>
@@ -760,9 +1434,7 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
         :key="project.title"
         :class="{ featured: index === 0 }"
       >
-        <div class="project-graph" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </div>
+        <div class="project-graph" aria-hidden="true"><span></span><span></span><span></span></div>
         <p>{{ project.code }}</p>
         <h2>{{ project.title }}</h2>
         <strong>{{ project.result }}</strong>
@@ -770,6 +1442,103 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
         <div class="project-tags">
           <em v-for="tag in project.tags" :key="tag" :data-tag="tag">{{ tag }}</em>
         </div>
+      </article>
+    </section>
+  </main>
+
+  <main v-else-if="view === 'activity'" class="page-shell cyber-page activity-page">
+    <section class="page-title">
+      <p class="eyebrow">Studio Activity</p>
+      <h1>社团动态</h1>
+      <p>先保留静态数据结构，后期可直接替换为真实照片、获奖速报、分享预告和项目里程碑。</p>
+    </section>
+
+    <section class="activity-grid">
+      <article v-for="item in activityFeeds" :key="item.title" class="activity-card">
+        <span>{{ item.type }}</span>
+        <h2>{{ item.title }}</h2>
+        <p>{{ item.text }}</p>
+        <strong>{{ item.meta }}</strong>
+      </article>
+    </section>
+
+    <section class="member-wall">
+      <div class="section-heading">
+        <p class="eyebrow">Member Wall</p>
+        <h2>成员方向展示</h2>
+      </div>
+      <div class="member-grid">
+        <article v-for="member in memberWall" :key="member.name" class="member-card">
+          <span>{{ member.name }}</span>
+          <h3>{{ member.department }}</h3>
+          <p>{{ member.direction }}</p>
+          <small>{{ member.link }}</small>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <main v-else-if="view === 'guide'" class="page-shell cyber-page guide-page">
+    <section class="page-title">
+      <p class="eyebrow">Newbie Guide</p>
+      <h1>新生入门指南</h1>
+      <p>技术成长图谱负责长期路线，这里只解决入社第一周怎么开始。</p>
+    </section>
+
+    <section class="guide-layout">
+      <article class="guide-panel">
+        <p class="eyebrow">Week 01</p>
+        <h2>上手清单</h2>
+        <ol>
+          <li v-for="item in onboardingSteps" :key="item">{{ item }}</li>
+        </ol>
+      </article>
+      <article class="guide-panel">
+        <p class="eyebrow">Resources</p>
+        <h2>常用资源</h2>
+        <dl class="resource-list">
+          <template v-for="item in resourceLinks" :key="item.name">
+            <dt>{{ item.name }}</dt>
+            <dd>{{ item.value }}</dd>
+          </template>
+        </dl>
+      </article>
+    </section>
+
+    <section class="faq-grid">
+      <article v-for="item in faqItems" :key="item.question" class="faq-card">
+        <h2>{{ item.question }}</h2>
+        <p>{{ item.answer }}</p>
+      </article>
+    </section>
+  </main>
+
+  <main v-else-if="view === 'status'" class="page-shell cyber-page status-page">
+    <section class="page-title">
+      <p class="eyebrow">Application Status</p>
+      <h1>报名状态查询</h1>
+      <p>输入报名成功后生成的编号和手机号，可以查看当前前端演示数据里的审核进度。</p>
+    </section>
+
+    <section class="status-layout">
+      <form class="status-panel" @submit.prevent="searchApplicationStatus">
+        <label>报名编号<input v-model.trim="statusQuery.id" placeholder="例如 ZR-2026-0001" /></label>
+        <label>手机号<input v-model.trim="statusQuery.phone" inputmode="tel" maxlength="11" /></label>
+        <button class="primary-action" type="submit">查询进度</button>
+        <p class="notice error">{{ statusMessage }}</p>
+      </form>
+
+      <article v-if="statusResult" class="status-result">
+        <span>{{ statusResult.id }}</span>
+        <h2>{{ statusResult.name }} / {{ statusResult.preferredDepartment }}</h2>
+        <p>当前状态：{{ statusResult.status }}</p>
+        <p>班级：{{ statusResult.className }}</p>
+        <p>提交时间：{{ statusResult.createdAt }}</p>
+      </article>
+      <article v-else class="status-result placeholder">
+        <span>WAITING</span>
+        <h2>等待查询</h2>
+        <p>提交报名后请保存编号；后端接入后这里可以直接查询真实审核状态。</p>
       </article>
     </section>
   </main>
@@ -800,6 +1569,15 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
             <span :style="{ width: `${formCompletion}%` }"></span>
           </div>
         </div>
+        <div class="form-step-guide">
+          <article v-for="step in formGuideSteps" :key="step.code">
+            <span>{{ step.code }}</span>
+            <strong>{{ step.title }}</strong>
+            <p>{{ step.text }}</p>
+          </article>
+        </div>
+        <p class="draft-status">{{ draftSavedAt || "填写内容会自动保存为本机草稿" }}</p>
+        <button class="secondary-action dark-action" type="button" @click="go('status')">查询报名状态</button>
         <div class="side-list">
           <span>部门志愿</span>
           <span>项目经历</span>
@@ -817,14 +1595,50 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
             </div>
           </div>
           <div class="form-grid">
-            <label>姓名<input name="name" v-model.trim="form.name" /><small>{{ errors.name }}</small></label>
-            <label>性别<select name="gender" v-model="form.gender"><option value="">请选择</option><option>男</option><option>女</option></select><small>{{ errors.gender }}</small></label>
-            <label>出生年月<input name="birthDate" type="month" v-model="form.birthDate" /><small>{{ errors.birthDate }}</small></label>
-            <label>民族<input name="ethnicity" v-model.trim="form.ethnicity" placeholder="例如：汉族" /><small>{{ errors.ethnicity }}</small></label>
-            <label>政治面貌<input name="politicalStatus" v-model.trim="form.politicalStatus" placeholder="例如：共青团员" /><small>{{ errors.politicalStatus }}</small></label>
-            <label>二级学院<input name="college" v-model.trim="form.college" placeholder="例如：科文学院" /><small>{{ errors.college }}</small></label>
-            <label>系别<input name="departmentMajor" v-model.trim="form.departmentMajor" placeholder="例如：软件工程系" /><small>{{ errors.departmentMajor }}</small></label>
-            <label>班级<input name="className" v-model.trim="form.className" placeholder="例如：软件工程 2401" /><small>{{ errors.className }}</small></label>
+            <label
+              >姓名<input name="name" v-model.trim="form.name" /><small>{{ errors.name }}</small></label
+            >
+            <label
+              >性别<select name="gender" v-model="form.gender">
+                <option value="">请选择</option>
+                <option>男</option>
+                <option>女</option></select
+              ><small>{{ errors.gender }}</small></label
+            >
+            <label
+              >出生年月<input name="birthDate" type="month" v-model="form.birthDate" /><small>{{
+                errors.birthDate
+              }}</small></label
+            >
+            <label
+              >民族<input name="ethnicity" v-model.trim="form.ethnicity" placeholder="例如：汉族" /><small>{{
+                errors.ethnicity
+              }}</small></label
+            >
+            <label
+              >政治面貌<input
+                name="politicalStatus"
+                v-model.trim="form.politicalStatus"
+                placeholder="例如：共青团员"
+              /><small>{{ errors.politicalStatus }}</small></label
+            >
+            <label
+              >二级学院<input name="college" v-model.trim="form.college" placeholder="例如：科文学院" /><small>{{
+                errors.college
+              }}</small></label
+            >
+            <label
+              >系别<input
+                name="departmentMajor"
+                v-model.trim="form.departmentMajor"
+                placeholder="例如：软件工程系"
+              /><small>{{ errors.departmentMajor }}</small></label
+            >
+            <label
+              >班级<input name="className" v-model.trim="form.className" placeholder="例如：软件工程 2401" /><small>{{
+                errors.className
+              }}</small></label
+            >
             <label>照片<input name="photo" type="file" accept="image/*" @change="onPhotoChange" /></label>
           </div>
         </section>
@@ -838,10 +1652,27 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
             </div>
           </div>
           <div class="form-grid">
-            <label>联系电话<input name="phone" v-model.trim="form.phone" inputmode="tel" maxlength="11" /><small>{{ errors.phone }}</small></label>
-            <label>QQ<input name="qq" v-model.trim="form.qq" inputmode="numeric" /><small>{{ errors.qq }}</small></label>
-            <label>意向部门<select name="preferredDepartment" v-model="form.preferredDepartment"><option value="">请选择</option><option v-for="item in departments" :key="item">{{ item }}</option></select><small>{{ errors.preferredDepartment }}</small></label>
-            <label>是否服从调剂<select name="acceptAdjustment" v-model="form.acceptAdjustment"><option value="">请选择</option><option>是</option><option>否</option></select><small>{{ errors.acceptAdjustment }}</small></label>
+            <label
+              >联系电话<input name="phone" v-model.trim="form.phone" inputmode="tel" maxlength="11" /><small>{{
+                errors.phone
+              }}</small></label
+            >
+            <label
+              >QQ<input name="qq" v-model.trim="form.qq" inputmode="numeric" /><small>{{ errors.qq }}</small></label
+            >
+            <label
+              >意向部门<select name="preferredDepartment" v-model="form.preferredDepartment">
+                <option value="">请选择</option>
+                <option v-for="item in departments" :key="item">{{ item }}</option></select
+              ><small>{{ errors.preferredDepartment }}</small></label
+            >
+            <label
+              >是否服从调剂<select name="acceptAdjustment" v-model="form.acceptAdjustment">
+                <option value="">请选择</option>
+                <option>是</option>
+                <option>否</option></select
+              ><small>{{ errors.acceptAdjustment }}</small></label
+            >
           </div>
         </section>
 
@@ -853,10 +1684,18 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
               <p>补充能力、奖项、经历和职业规划，帮助部门了解你的方向。</p>
             </div>
           </div>
-          <label class="full">爱好及特长<textarea name="strengths" rows="4" v-model.trim="form.strengths"></textarea><small>{{ errors.strengths }}</small></label>
+          <label class="full"
+            >爱好及特长<textarea name="strengths" rows="4" v-model.trim="form.strengths"></textarea
+            ><small>{{ errors.strengths }}</small></label
+          >
           <label class="full">曾获奖项<textarea name="awards" rows="3" v-model.trim="form.awards"></textarea></label>
-          <label class="full">任职经历<textarea name="experience" rows="3" v-model.trim="form.experience"></textarea></label>
-          <label class="full">职业规划<textarea name="careerPlan" rows="4" v-model.trim="form.careerPlan"></textarea><small>{{ errors.careerPlan }}</small></label>
+          <label class="full"
+            >任职经历<textarea name="experience" rows="3" v-model.trim="form.experience"></textarea>
+          </label>
+          <label class="full"
+            >职业规划<textarea name="careerPlan" rows="4" v-model.trim="form.careerPlan"></textarea
+            ><small>{{ errors.careerPlan }}</small></label
+          >
         </section>
 
         <div class="form-actions sticky-actions">
@@ -875,22 +1714,45 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
     </section>
 
     <section class="admin-toolbar">
-      <label>部门<select data-filter-department v-model="filters.department"><option value="">全部部门</option><option v-for="item in departments" :key="item">{{ item }}</option></select></label>
-      <label>状态<select data-filter-status v-model="filters.status"><option value="">全部状态</option><option v-for="item in statuses" :key="item">{{ item }}</option></select></label>
+      <label
+        >部门<select data-filter-department v-model="filters.department">
+          <option value="">全部部门</option>
+          <option v-for="item in departments" :key="item">{{ item }}</option>
+        </select></label
+      >
+      <label
+        >状态<select data-filter-status v-model="filters.status">
+          <option value="">全部状态</option>
+          <option v-for="item in statuses" :key="item">{{ item }}</option>
+        </select></label
+      >
       <label>搜索<input data-filter-keyword v-model.trim="filters.keyword" placeholder="姓名、电话、QQ、班级" /></label>
       <p>{{ adminStats }}</p>
     </section>
 
     <section class="table-wrap">
       <table>
-        <thead><tr><th>姓名</th><th>班级</th><th>意向部门</th><th>状态</th><th>联系电话</th><th>操作</th></tr></thead>
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>班级</th>
+            <th>意向部门</th>
+            <th>状态</th>
+            <th>联系电话</th>
+            <th>操作</th>
+          </tr>
+        </thead>
         <tbody data-application-list>
-          <tr v-if="!filteredApplications.length"><td colspan="6" class="empty">暂无符合条件的报名记录</td></tr>
+          <tr v-if="!filteredApplications.length">
+            <td colspan="6" class="empty">暂无符合条件的报名记录</td>
+          </tr>
           <tr v-for="record in filteredApplications" :key="record.id">
             <td>{{ record.name }}</td>
             <td>{{ record.className }}</td>
             <td>{{ record.preferredDepartment }}</td>
-            <td><span class="status">{{ record.status }}</span></td>
+            <td>
+              <span class="status">{{ record.status }}</span>
+            </td>
             <td>{{ record.phone }}</td>
             <td>
               <button class="icon-text small" type="button" @click="selectedApplication = record">查看</button>
@@ -907,24 +1769,42 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
       <h2>报名详情</h2>
       <p v-if="!selectedApplication">点击列表中的“查看”后，这里会展示完整报名表内容。</p>
       <dl v-else class="detail-grid">
-        <dt>报名编号</dt><dd>{{ selectedApplication.id }}</dd>
-        <dt>姓名</dt><dd>{{ selectedApplication.name }}</dd>
-        <dt>性别</dt><dd>{{ selectedApplication.gender }}</dd>
-        <dt>出生年月</dt><dd>{{ selectedApplication.birthDate }}</dd>
-        <dt>民族</dt><dd>{{ selectedApplication.ethnicity }}</dd>
-        <dt>政治面貌</dt><dd>{{ selectedApplication.politicalStatus }}</dd>
-        <dt>二级学院</dt><dd>{{ selectedApplication.college }}</dd>
-        <dt>系别</dt><dd>{{ selectedApplication.departmentMajor }}</dd>
-        <dt>班级</dt><dd>{{ selectedApplication.className }}</dd>
-        <dt>联系电话</dt><dd>{{ selectedApplication.phone }}</dd>
-        <dt>QQ</dt><dd>{{ selectedApplication.qq }}</dd>
-        <dt>意向部门</dt><dd>{{ selectedApplication.preferredDepartment }}</dd>
-        <dt>服从调剂</dt><dd>{{ selectedApplication.acceptAdjustment }}</dd>
-        <dt>照片文件</dt><dd>{{ selectedApplication.photoName || "未上传" }}</dd>
-        <dt>爱好及特长</dt><dd>{{ selectedApplication.strengths }}</dd>
-        <dt>曾获奖项</dt><dd>{{ selectedApplication.awards || "未填写" }}</dd>
-        <dt>任职经历</dt><dd>{{ selectedApplication.experience || "未填写" }}</dd>
-        <dt>职业规划</dt><dd>{{ selectedApplication.careerPlan }}</dd>
+        <dt>报名编号</dt>
+        <dd>{{ selectedApplication.id }}</dd>
+        <dt>姓名</dt>
+        <dd>{{ selectedApplication.name }}</dd>
+        <dt>性别</dt>
+        <dd>{{ selectedApplication.gender }}</dd>
+        <dt>出生年月</dt>
+        <dd>{{ selectedApplication.birthDate }}</dd>
+        <dt>民族</dt>
+        <dd>{{ selectedApplication.ethnicity }}</dd>
+        <dt>政治面貌</dt>
+        <dd>{{ selectedApplication.politicalStatus }}</dd>
+        <dt>二级学院</dt>
+        <dd>{{ selectedApplication.college }}</dd>
+        <dt>系别</dt>
+        <dd>{{ selectedApplication.departmentMajor }}</dd>
+        <dt>班级</dt>
+        <dd>{{ selectedApplication.className }}</dd>
+        <dt>联系电话</dt>
+        <dd>{{ selectedApplication.phone }}</dd>
+        <dt>QQ</dt>
+        <dd>{{ selectedApplication.qq }}</dd>
+        <dt>意向部门</dt>
+        <dd>{{ selectedApplication.preferredDepartment }}</dd>
+        <dt>服从调剂</dt>
+        <dd>{{ selectedApplication.acceptAdjustment }}</dd>
+        <dt>照片文件</dt>
+        <dd>{{ selectedApplication.photoName || "未上传" }}</dd>
+        <dt>爱好及特长</dt>
+        <dd>{{ selectedApplication.strengths }}</dd>
+        <dt>曾获奖项</dt>
+        <dd>{{ selectedApplication.awards || "未填写" }}</dd>
+        <dt>任职经历</dt>
+        <dd>{{ selectedApplication.experience || "未填写" }}</dd>
+        <dt>职业规划</dt>
+        <dd>{{ selectedApplication.careerPlan }}</dd>
       </dl>
     </section>
   </main>

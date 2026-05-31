@@ -74,8 +74,8 @@ runTest("Vue admin view exposes management filters and application list", () => 
 runTest("public navigation hides direct personnel management entry", () => {
   const html = read("src/App.vue");
 
-  assert.ok(!html.includes('data-public-admin-link'));
-  assert.ok(html.includes('data-admin-gate'));
+  assert.ok(!html.includes("data-public-admin-link"));
+  assert.ok(html.includes("data-admin-gate"));
   assert.ok(html.includes("管理员入口"));
 });
 
@@ -98,8 +98,59 @@ runTest("Vue app exposes cyber recruitment routes from the design document", () 
   assert.ok(html.includes('"arsenal"'), "missing arsenal view route");
   assert.ok(html.includes("算力矩阵"));
   assert.ok(html.includes("导师资源"));
-  assert.ok(html.includes("技术兵器谱"));
+  assert.ok(html.includes("技术成长图谱"));
   assert.ok(html.includes("api.zhuoruan.xyz"));
+});
+
+runTest("tech arsenal presents a richer computer learning map", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes("arsenalStages"), "missing staged learning roadmap");
+  assert.ok(html.includes("arsenalSkillNodes"), "missing skill node map");
+  assert.ok(html.includes("Java 基础"));
+  assert.ok(html.includes("Python 脚本"));
+  assert.ok(html.includes("数据结构"));
+  assert.ok(html.includes("Linux 命令"));
+  assert.ok(html.includes("自动化测试"));
+  assert.ok(html.includes("产品"));
+  assert.ok(html.includes("数据分析"));
+  assert.ok(html.includes("TypeScript"));
+  assert.ok(html.includes("Node.js"));
+  assert.ok(html.includes("Android"));
+  assert.ok(html.includes("Flutter"));
+  assert.ok(html.includes("Kubernetes"));
+  assert.ok(html.includes("MLOps"));
+  assert.ok(html.includes("UI/UX"));
+  assert.ok(html.includes("技术写作"));
+  assert.ok(html.includes("408"));
+  assert.ok(html.includes("软考"));
+  assert.ok(html.includes("网络工程"));
+  assert.ok(css.includes(".arsenal-roadmap"));
+  assert.ok(css.includes(".arsenal-modules"));
+});
+
+runTest("tech arsenal supports interactive skill node details", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes("selectedSkillId"), "missing selected skill state");
+  assert.ok(html.includes("selectedSkill = computed"), "missing selected skill computed value");
+  assert.ok(html.includes('@click="selectedSkillId = node.id"'), "missing skill node click handler");
+  assert.ok(html.includes("skill-detail-panel"), "missing skill detail panel");
+  assert.ok(html.includes("selectedSkill.practice"), "missing practice task binding");
+  assert.ok(html.includes("关联节点"), "missing related node section");
+  assert.ok(html.includes("relatedArsenalTracks"), "missing dynamic related track list");
+  assert.ok(html.includes("selectSkillByName"), "missing related node switch handler");
+  assert.ok(html.includes("hasSkillNode"), "missing related node availability state");
+  assert.ok(html.includes("selectedSkill.name }} 推荐方向"), "missing selected skill related heading");
+  assert.ok(html.includes("track.skillIds.includes(selectedSkill.value.id)"), "missing track filtering");
+  assert.ok(html.includes("RAG 入门"), "missing AI knowledge node detail");
+  assert.ok(html.includes("报名数据清洗脚本"), "missing Python practice task");
+  assert.ok(css.includes(".skill-detail-panel"));
+  assert.ok(css.includes(".skill-links"));
+  assert.ok(css.includes(".arsenal-related-heading"));
+  assert.ok(css.includes(".skill-links button.linked"));
 });
 
 runTest("compute matrix includes public API gateway details", () => {
@@ -144,7 +195,7 @@ runTest("compute matrix visualizes model access with restrained logo grid", () =
   assert.ok(html.includes("GLM"));
   assert.ok(html.includes("model-logo"));
   assert.ok(html.includes("logo.path"));
-  assert.ok(html.includes("<path :d=\"logo.path\">"));
+  assert.ok(html.includes('<path :d="logo.path">'));
   assert.ok(css.includes(".model-logo"));
   assert.ok(css.includes(".model-logo svg"));
   assert.ok(css.includes("fill: currentColor"));
@@ -165,11 +216,14 @@ runTest("visual polish includes interactive cyber and terminal details", () => {
   const html = read("src/App.vue");
   const css = read("styles.css");
 
-  assert.ok(html.includes("cyber-core-stage"), "missing draggable cyber core stage");
+  assert.ok(html.includes("hero-console-stage"), "missing hero console stage");
+  assert.ok(html.includes("zr-core.sh"), "missing hero console title");
   assert.ok(html.includes("typewriter-line"), "missing typewriter terminal lines");
   assert.ok(html.includes("department-icon"), "missing department tech icons");
   assert.ok(html.includes("compute-visual"), "missing compute matrix visualization");
   assert.ok(html.includes("tech-logo"), "missing tech logo buttons");
+  assert.ok(css.includes(".console-orbit"), "missing hero console orbit styles");
+  assert.ok(css.includes(".hero-console"), "missing hero console styles");
   assert.ok(css.includes(".terminal-register label::after"), "missing terminal input prompt styling");
 });
 
@@ -209,11 +263,86 @@ runTest("UI polish includes navigation, showcase tags, and focus micro-interacti
   const html = read("src/App.vue");
   const css = read("styles.css");
 
-  assert.ok(html.includes(":data-tag=\"tag\""), "missing project tag data hook");
+  assert.ok(html.includes(':data-tag="tag"'), "missing project tag data hook");
   assert.ok(css.includes(".nav a.active::after"), "missing active navigation cursor");
   assert.ok(css.includes("backdrop-filter: blur(10px)"), "missing glass navigation blur");
   assert.ok(css.includes(".showcase-card::before"), "missing showcase hover sheen");
   assert.ok(css.includes('.project-tags em[data-tag="Vue3"]'), "missing Vue tag color");
   assert.ok(css.includes('.project-tags em[data-tag="Docker"]'), "missing Docker tag color");
   assert.ok(css.includes("inset 0 0 18px rgba(78, 244, 208, 0.06)"), "missing terminal focus glow");
+});
+
+runTest("project engineering config supports aliases, chunks, api, permissions, and quality tools", () => {
+  const vite = read("vite.config.js");
+  const main = read("src/main.js");
+  const pkg = read("package.json");
+  const request = read("src/request.js");
+  const permissions = read("src/adminPermissions.js");
+  const eslint = read("eslint.config.mjs");
+  const prettier = read(".prettierrc.json");
+  const css = read("styles.css");
+
+  assert.ok(vite.includes('"@"'), "missing @ alias");
+  assert.ok(vite.includes("manualChunks"), "missing vendor chunk config");
+  assert.ok(vite.includes("vendor-vue"), "missing Vue vendor chunk");
+  assert.ok(main.includes('from "@/App.vue"'), "main entry should use @ alias");
+  assert.ok(request.includes("createRequestClient"), "missing request client factory");
+  assert.ok(request.includes("Authorization"), "missing auth header handling");
+  assert.ok(request.includes("response.status === 401"), "missing unauthorized handling");
+  assert.ok(permissions.includes("ADMIN_ROLES"), "missing static admin roles");
+  assert.ok(permissions.includes("getMenusForRole"), "missing role menu helper");
+  assert.ok(pkg.includes('"lint"'), "missing lint script");
+  assert.ok(pkg.includes('"format:check"'), "missing Prettier check script");
+  assert.ok(eslint.includes("eslint-plugin-vue"), "missing Vue ESLint config");
+  assert.ok(prettier.includes('"printWidth"'), "missing Prettier config");
+  assert.ok(css.includes("@media (max-width: 640px)"), "missing small-screen responsive polish");
+});
+
+runTest("recruitment flow supports draft saving and public status lookup", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes("FORM_DRAFT_KEY"), "missing recruitment draft storage key");
+  assert.ok(html.includes("watch(form, saveFormDraft"), "missing automatic draft watcher");
+  assert.ok(html.includes("loadFormDraft()"), "missing draft restore on mount");
+  assert.ok(html.includes("draftSavedAt"), "missing draft saved feedback");
+  assert.ok(html.includes('"status"'), "missing status route");
+  assert.ok(html.includes("statusQuery"), "missing status query state");
+  assert.ok(html.includes("searchApplicationStatus"), "missing status lookup handler");
+  assert.ok(html.includes("status-result"), "missing status result UI");
+  assert.ok(css.includes(".draft-status"), "missing draft status style");
+  assert.ok(css.includes(".status-layout"), "missing status page layout");
+});
+
+runTest("site adds activity, guide, member, and department choice surfaces with placeholders", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes("activityFeeds"), "missing activity feed data");
+  assert.ok(html.includes('"activity"'), "missing activity route");
+  assert.ok(html.includes("onboardingSteps"), "missing onboarding checklist");
+  assert.ok(html.includes("resourceLinks"), "missing resource placeholders");
+  assert.ok(html.includes("faqItems"), "missing FAQ content");
+  assert.ok(html.includes("memberWall"), "missing desensitized member wall");
+  assert.ok(html.includes("departmentChoiceCards"), "missing department chooser data");
+  assert.ok(html.includes("choice-helper"), "missing department choice helper UI");
+  assert.ok(html.includes("nav-more"), "missing grouped navigation menu");
+  assert.ok(css.includes(".activity-grid"), "missing activity grid styles");
+  assert.ok(css.includes(".guide-layout"), "missing guide page styles");
+  assert.ok(css.includes(".member-grid"), "missing member wall styles");
+  assert.ok(css.includes(".choice-grid"), "missing department chooser styles");
+  assert.ok(css.includes(".nav-more-menu"), "missing more navigation styles");
+});
+
+runTest("sharing and cursor polish are configured for mobile recruitment spread", () => {
+  const html = read("index.html");
+  const css = read("styles.css");
+
+  assert.ok(html.includes('property="og:title"'), "missing Open Graph title");
+  assert.ok(html.includes('property="og:description"'), "missing Open Graph description");
+  assert.ok(html.includes('property="og:image"'), "missing Open Graph image placeholder");
+  assert.ok(html.includes('name="theme-color"'), "missing browser theme color");
+  assert.ok(css.includes("cursor: default"), "global crosshair cursor should be removed");
+  assert.ok(css.includes("input,\ntextarea"), "missing text cursor override");
+  assert.ok(css.includes("button,\na,\nsummary,\nselect"), "missing pointer cursor override");
 });

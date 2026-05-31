@@ -13,6 +13,7 @@
 ### Task 1: Page Structure Tests
 
 **Files:**
+
 - Modify: `tests/test_pages.js`
 
 - [x] **Step 1: Write failing tests**
@@ -28,6 +29,7 @@ Expected: FAIL because the new routes and terminal shell do not exist yet.
 ### Task 2: Vue Views
 
 **Files:**
+
 - Modify: `src/App.vue`
 
 - [x] **Step 1: Add view data and routes**
@@ -45,6 +47,7 @@ Change the registration page title to `Root Access`, include `./join_zhuoruan.sh
 ### Task 3: Visual Styling
 
 **Files:**
+
 - Modify: `styles.css`
 - Modify: `src/main.js`
 
@@ -59,6 +62,7 @@ Print a ZhuoRuan console message from `src/main.js` for users who open developer
 ### Task 4: Documentation and Verification
 
 **Files:**
+
 - Modify: `阶段总结.md`
 
 - [x] **Step 1: Append stage summary**

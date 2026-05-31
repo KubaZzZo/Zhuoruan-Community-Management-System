@@ -7,12 +7,21 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node tests/test_app.js && node tests/test_pages.js"
+    "test": "node tests/test_app.js && node tests/test_pages.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^5.2.0",
     "vite": "^6.0.0",
     "vue": "^3.5.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "eslint-plugin-vue": "^10.9.1",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3"
+  }
 }

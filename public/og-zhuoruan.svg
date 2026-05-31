@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#080b10" />
+  <path d="M0 110H1200M0 220H1200M0 330H1200M0 440H1200M0 550H1200M120 0V630M240 0V630M360 0V630M480 0V630M600 0V630M720 0V630M840 0V630M960 0V630M1080 0V630" stroke="#4ef4d0" stroke-opacity=".08" />
+  <circle cx="940" cy="162" r="176" fill="#4ef4d0" fill-opacity=".08" />
+  <circle cx="196" cy="520" r="150" fill="#ff3e82" fill-opacity=".08" />
+  <text x="88" y="190" fill="#4ef4d0" font-family="Consolas, monospace" font-size="34" font-weight="700">./join_zhuoruan.sh</text>
+  <text x="88" y="300" fill="#ecfff9" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="78" font-weight="900">卓软信息工作室招新</text>
+  <text x="92" y="384" fill="#dce8ee" fill-opacity=".78" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="32">部门介绍 / 技术成长图谱 / 算力矩阵 / 在线报名</text>
+  <rect x="88" y="452" width="380" height="58" rx="8" fill="#4ef4d0" fill-opacity=".12" stroke="#4ef4d0" stroke-opacity=".5" />
+  <text x="116" y="491" fill="#9dffe8" font-family="Consolas, monospace" font-size="25" font-weight="700">api.zhuoruan.xyz online</text>
+</svg>
