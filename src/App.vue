@@ -10,7 +10,7 @@ import {
 } from "./recruitment.js";
 
 const STORAGE_KEY = "zhuoruan_recruitment_applications";
-const views = ["home", "matrix", "arsenal", "showcase", "department", "register", "admin"];
+const views = ["home", "matrix", "mentor", "arsenal", "showcase", "department", "register", "admin"];
 const view = ref("home");
 const applications = ref([]);
 const selectedApplication = ref(null);
@@ -148,16 +148,28 @@ const matrixCards = [
     meta: "GitHub / Passkey / Email",
     text: "支持 GitHub OAuth、Passkey 登录和邮箱验证，配合额度、兑换码、日志和控制台模块，形成可管理的社团 API 资源池。",
   },
+];
+const mentorTracks = [
   {
-    title: "硬核导师镇场",
-    meta: "Architecture / Java / 408",
-    text: "从理论到落地串起完整链路，覆盖 Spring Boot 微服务、数据库设计、系统原理和竞赛项目推进。",
+    title: "后端与架构",
+    meta: "Spring Boot / MySQL / API",
+    text: "从接口设计、数据库建模到服务拆分，帮助新生理解一个项目如何从课堂作业变成可维护系统。",
   },
   {
-    title: "项目训练场",
-    meta: "Demo to Production",
-    text: "把课堂作业推进到真实可演示项目，重视代码评审、测试、部署和复盘，而不是只停留在页面截图。",
+    title: "竞赛与交付",
+    meta: "Competition / Demo / Review",
+    text: "围绕赛题拆解、方案表达、原型交付和答辩材料，训练把想法推进成成果的完整能力。",
   },
+  {
+    title: "AI 工程实践",
+    meta: "LLM Gateway / Agent / Ops",
+    text: "基于社团 API 网关和自动化工具链，指导模型接入、Prompt 工作流和 AI 应用落地。",
+  },
+];
+const mentorPath = [
+  ["01", "补基础", "从编程语言、Git、接口和数据库开始，把项目协作的基础动作练稳。"],
+  ["02", "进项目", "参与社团工具、竞赛 Demo 或 AI 工作流小任务，在真实上下文里提升。"],
+  ["03", "做复盘", "通过代码评审、项目复盘和答辩演练，把经验沉淀成可复用能力。"],
 ];
 const modelLogos = [
   {
@@ -422,6 +434,7 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
     <nav class="nav">
       <a href="#home" :class="{ active: view === 'home' }" @click.prevent="go('home')">宣传首页</a>
       <a href="#matrix" :class="{ active: view === 'matrix' }" @click.prevent="go('matrix')">算力矩阵</a>
+      <a href="#mentor" :class="{ active: view === 'mentor' }" @click.prevent="go('mentor')">导师资源</a>
       <a href="#arsenal" :class="{ active: view === 'arsenal' }" @click.prevent="go('arsenal')">技术兵器谱</a>
       <a href="#showcase" :class="{ active: view === 'showcase' }" @click.prevent="go('showcase')">开源展厅</a>
       <a href="#register" :class="{ active: view === 'register' }" @click.prevent="go('register')">招新报名</a>
@@ -626,7 +639,7 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
     <section class="page-title">
       <p class="eyebrow">Compute Matrix</p>
       <h1>算力矩阵</h1>
-      <p>把 API 平台、导师资源和项目训练场集中展示给对 AI、后端和自动化感兴趣的新生。</p>
+      <p>聚焦 `api.zhuoruan.xyz` 聚合网关、模型接入、客户端入口和账号额度管理，让新生直观看到社团的 AI 资源底座。</p>
     </section>
 
     <section class="matrix-grid">
@@ -649,6 +662,42 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
             <strong>{{ logo.name }}</strong>
           </span>
         </div>
+      </article>
+    </section>
+  </main>
+
+  <main v-else-if="view === 'mentor'" class="page-shell cyber-page mentor-page">
+    <section class="mentor-hero">
+      <div>
+        <p class="eyebrow">Mentor System</p>
+        <h1>导师资源</h1>
+        <p>把“有人带、能落地、能复盘”讲清楚。导师资源页专门展示社团在架构、竞赛和 AI 工程方向能给新生提供的指导路径。</p>
+        <div class="mentor-actions">
+          <button class="primary-action neon-action" type="button" @click="go('register')">申请加入训练序列</button>
+          <button class="secondary-action" type="button" @click="go('arsenal')">查看技术兵器谱</button>
+        </div>
+      </div>
+      <div class="mentor-terminal" aria-hidden="true">
+        <span>$ mentorctl status</span>
+        <span>&gt; architecture: online</span>
+        <span>&gt; competition: online</span>
+        <span>&gt; ai_engineering: online</span>
+      </div>
+    </section>
+
+    <section class="mentor-grid">
+      <article class="mentor-card" v-for="track in mentorTracks" :key="track.title">
+        <span>{{ track.meta }}</span>
+        <h2>{{ track.title }}</h2>
+        <p>{{ track.text }}</p>
+      </article>
+    </section>
+
+    <section class="mentor-path" aria-label="成长路径">
+      <article v-for="[step, title, text] in mentorPath" :key="step">
+        <span>{{ step }}</span>
+        <h2>{{ title }}</h2>
+        <p>{{ text }}</p>
       </article>
     </section>
   </main>

@@ -94,8 +94,10 @@ runTest("Vue app exposes cyber recruitment routes from the design document", () 
   const html = read("src/App.vue");
 
   assert.ok(html.includes('"matrix"'), "missing matrix view route");
+  assert.ok(html.includes('"mentor"'), "missing mentor view route");
   assert.ok(html.includes('"arsenal"'), "missing arsenal view route");
   assert.ok(html.includes("算力矩阵"));
+  assert.ok(html.includes("导师资源"));
   assert.ok(html.includes("技术兵器谱"));
   assert.ok(html.includes("api.zhuoruan.xyz"));
 });
@@ -110,6 +112,25 @@ runTest("compute matrix includes public API gateway details", () => {
   assert.ok(html.includes("绘图能力和任务能力"));
   assert.ok(html.includes("GitHub OAuth"));
   assert.ok(html.includes("Passkey"));
+});
+
+runTest("compute matrix is focused on API resources while mentor content has its own page", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+  const matrixStart = html.indexOf("const matrixCards");
+  const matrixEnd = html.indexOf("const mentorTracks");
+  const matrixData = html.slice(matrixStart, matrixEnd);
+
+  assert.ok(!matrixData.includes("硬核导师镇场"), "mentor card should not stay in matrix data");
+  assert.ok(!matrixData.includes("项目训练场"), "project training card should not stay in matrix data");
+  assert.ok(html.includes("const mentorTracks"));
+  assert.ok(html.includes("Mentor System"));
+  assert.ok(html.includes("后端与架构"));
+  assert.ok(html.includes("竞赛与交付"));
+  assert.ok(html.includes("AI 工程实践"));
+  assert.ok(css.includes(".mentor-page"));
+  assert.ok(css.includes(".mentor-card"));
+  assert.ok(css.includes(".mentor-path"));
 });
 
 runTest("compute matrix visualizes model access with restrained logo grid", () => {
