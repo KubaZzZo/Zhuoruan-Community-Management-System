@@ -124,9 +124,10 @@ const bootLines = [
 ];
 const matrixCards = [
   {
-    title: "无限火力 API",
+    title: "AI 算力网关",
     meta: "api.zhuoruan.xyz",
     text: "统一的 AI 模型聚合与分发网关，面向 AI Agent、自动化工具和课程项目实验开放，支持把模型服务转换为 OpenAI、Claude、Gemini 兼容接口。",
+    visual: "models",
   },
   {
     title: "OpenAI 兼容入口",
@@ -647,7 +648,7 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
         <span>{{ card.meta }}</span>
         <h2>{{ card.title }}</h2>
         <p>{{ card.text }}</p>
-        <div v-if="card.title === '无限火力 API'" class="compute-visual" aria-hidden="true">
+        <div v-if="card.visual === 'models'" class="compute-visual" aria-hidden="true">
           <span
             v-for="(logo, index) in modelLogos"
             :key="logo.name"
