@@ -165,6 +165,25 @@ runTest("showcase route presents project outcomes as a standalone gallery", () =
   assert.ok(css.includes(".terminal-register label:focus-within::after"));
 });
 
+runTest("department detail pages help applicants choose a fitting team", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes('"department"'), "missing department detail route");
+  assert.ok(html.includes("departmentProfiles"), "missing shared department profile data");
+  assert.ok(html.includes("goDepartment"), "missing department card navigation");
+  assert.ok(html.includes("Department Profile"), "missing department detail hero");
+  assert.ok(html.includes("适合人群"));
+  assert.ok(html.includes("能学到什么"));
+  assert.ok(html.includes("主要任务"));
+  assert.ok(html.includes("报名建议"));
+  assert.ok(html.includes("选择该部门并报名"));
+  assert.ok(html.includes("form.preferredDepartment = departmentName"), "missing register prefill");
+  assert.ok(css.includes(".department-detail-page"));
+  assert.ok(css.includes(".department-switcher"));
+  assert.ok(css.includes(".department-profile-card"));
+});
+
 runTest("UI polish includes navigation, showcase tags, and focus micro-interactions", () => {
   const html = read("src/App.vue");
   const css = read("styles.css");

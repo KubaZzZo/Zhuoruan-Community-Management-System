@@ -10,7 +10,7 @@ import {
 } from "./recruitment.js";
 
 const STORAGE_KEY = "zhuoruan_recruitment_applications";
-const views = ["home", "matrix", "arsenal", "showcase", "register", "admin"];
+const views = ["home", "matrix", "arsenal", "showcase", "department", "register", "admin"];
 const view = ref("home");
 const applications = ref([]);
 const selectedApplication = ref(null);
@@ -32,13 +32,86 @@ const filters = reactive({
 
 const departments = DEPARTMENTS;
 const statuses = STATUSES;
-const departmentCards = [
-  ["研发部", "承担开发任务与框架设计，是社团核心技术部门，关注计划、设计、执行、测试和维护完整流程。", "{ }"],
-  ["项目部", "负责项目开发与竞赛培训，覆盖数学建模、数据分析、AI、物联网、软件开发和创新创业。", "Σ"],
-  ["外联部", "负责赞助、经费、外事联络和礼仪安排，为社团活动争取资源并推动校内外合作。", "↔"],
-  ["组织部", "负责组织活动、物资管理、宣传设计、会场布置和社团日常活动支持。", "⌘"],
-  ["产品部", "负责美工创意、需求分析、产品生命周期管理，协助技术团队打造有价值的项目成果。", "UI"],
-  ["实干青年部", "拥有丰富竞赛资源，注重编码能力、沟通能力和团队协作能力培养，原则上不直接对外招新。", "AI"],
+const selectedDepartmentId = ref("dev");
+const departmentProfiles = [
+  {
+    id: "dev",
+    name: "研发部",
+    icon: "{ }",
+    summary: "承担开发任务与框架设计，是社团核心技术部门，关注计划、设计、执行、测试和维护完整流程。",
+    mission: "把需求拆成可运行的软件系统，负责核心代码、接口设计、工程规范和技术攻坚。",
+    suitedFor: "适合愿意长期写代码、喜欢拆问题、能接受调试和复盘的新生。没有完整项目经验也可以，但要愿意持续练习。",
+    learn: ["Vue3 / Java / API 设计", "Git 协作与代码评审", "测试、部署和问题定位"],
+    tasks: ["参与社团内部工具开发", "维护招新系统和后台功能", "沉淀项目模板与开发规范"],
+    basics: "建议具备任意一门编程语言基础；如果基础薄弱，可以先从前端页面、脚本工具或接口联调任务切入。",
+    advice: "报名时重点写清楚做过的小项目、刷题经历、调试经历，哪怕只是课程作业，也比空泛地写“喜欢编程”更有判断价值。",
+    tags: ["Code", "API", "Review"],
+  },
+  {
+    id: "project",
+    name: "项目部",
+    icon: "Σ",
+    summary: "负责项目开发与竞赛培训，覆盖数学建模、数据分析、AI、物联网、软件开发和创新创业。",
+    mission: "把赛题、创意和课程任务推进成可展示成果，负责需求拆解、进度推进、材料组织和跨角色协作。",
+    suitedFor: "适合目标感强、愿意参加比赛、能主动沟通和跟进进度的新生。技术、文档、数据分析能力都能发挥作用。",
+    learn: ["竞赛选题与需求分析", "项目排期与交付复盘", "AI / 数据 / 物联网方案整合"],
+    tasks: ["组织竞赛项目训练", "协助队伍完成原型和答辩材料", "整理项目案例和复盘文档"],
+    basics: "不要求一开始就会完整开发，但需要有执行力，能按节点完成资料、调研、数据或功能任务。",
+    advice: "报名时可以写自己参加过的比赛、负责过的小组任务、擅长的信息整理或表达能力，突出“能把事情推进”。",
+    tags: ["Competition", "Delivery", "Research"],
+  },
+  {
+    id: "outreach",
+    name: "外联部",
+    icon: "↔",
+    summary: "负责赞助、经费、外事联络和礼仪安排，为社团活动争取资源并推动校内外合作。",
+    mission: "连接社团与外部资源，负责沟通、赞助、合作对接和活动支持，让技术项目有更好的展示与资源环境。",
+    suitedFor: "适合表达清楚、敢于沟通、做事稳妥的新生。对技术不熟也可以，但需要可靠、礼貌、有跟进意识。",
+    learn: ["商务沟通与合作对接", "活动资源统筹", "正式场合表达和礼仪"],
+    tasks: ["联系活动资源与赞助", "协助校内外合作沟通", "支持招新、讲座和竞赛活动落地"],
+    basics: "推荐具备基本沟通能力和文案能力，能按时反馈进展，避免信息断档。",
+    advice: "报名时可以写组织活动、班委社团经历、沟通协调案例，重点体现责任心和表达能力。",
+    tags: ["Resource", "Communication", "Event"],
+  },
+  {
+    id: "organization",
+    name: "组织部",
+    icon: "⌘",
+    summary: "负责组织活动、物资管理、宣传设计、会场布置和社团日常活动支持。",
+    mission: "保障社团活动从计划到现场执行都能稳定落地，是维持社团日常运转的重要枢纽。",
+    suitedFor: "适合细心、有秩序感、愿意做现场执行和流程管理的新生。技术能力不是硬门槛，可靠性更重要。",
+    learn: ["活动流程设计", "现场执行与物资管理", "宣传协同和复盘记录"],
+    tasks: ["组织招新、讲座、培训活动", "管理物资和场地安排", "协助宣传与活动记录"],
+    basics: "需要守时、细致、能处理琐碎事项，最好有班级或社团活动执行经验。",
+    advice: "报名时可以写自己负责过的活动、排班、物资、宣传或现场协调经历，越具体越好。",
+    tags: ["Ops", "Schedule", "Support"],
+  },
+  {
+    id: "product",
+    name: "产品部",
+    icon: "UI",
+    summary: "负责美工创意、需求分析、产品生命周期管理，协助技术团队打造有价值的项目成果。",
+    mission: "站在用户视角定义产品体验，把想法变成清晰的原型、页面结构、需求说明和展示材料。",
+    suitedFor: "适合对审美、交互、文案、用户体验或产品策划感兴趣的新生。会设计软件是加分项，但不是唯一标准。",
+    learn: ["需求分析与原型设计", "UI 视觉与交互细节", "产品文档和演示表达"],
+    tasks: ["设计项目页面和功能流程", "配合研发部梳理需求", "制作展示海报、PPT 和演示材料"],
+    basics: "推荐了解 Figma、墨刀、Canva、PS 或任意设计工具；没有工具基础也可以从竞品分析和文案开始。",
+    advice: "报名时可以附上设计作品、PPT、海报、页面截图或产品想法，重点展示审美判断和表达结构。",
+    tags: ["UI", "Prototype", "Story"],
+  },
+  {
+    id: "youth",
+    name: "实干青年部",
+    icon: "AI",
+    summary: "拥有丰富竞赛资源，注重编码能力、沟通能力和团队协作能力培养，原则上不直接对外招新。",
+    mission: "围绕高强度项目和竞赛任务培养能独立推进的人，强调实战、协作和长期成长。",
+    suitedFor: "适合已经有较强执行力、愿意承担压力、能持续投入项目的新生。该部门原则上不直接对外招新，可先加入其他部门成长。",
+    learn: ["高强度项目协作", "竞赛方案打磨", "跨部门技术与表达训练"],
+    tasks: ["参与重点竞赛与项目攻坚", "协助训练新成员实战能力", "沉淀高质量项目经验"],
+    basics: "建议先在研发部、项目部或产品部积累一段时间，再通过项目表现进入更高强度任务。",
+    advice: "报名时可说明自己愿意参与高强度项目，但意向部门建议优先选择研发部、项目部或产品部。",
+    tags: ["Challenge", "Teamwork", "Growth"],
+  },
 ];
 const bootLines = [
   "[ OK ] Started Zhuoruan Core Service.",
@@ -231,9 +304,20 @@ const formCompletion = computed(() => {
   const completed = requiredFormKeys.filter((key) => String(form[key] || "").trim()).length;
   return Math.round((completed / requiredFormKeys.length) * 100);
 });
+const selectedDepartment = computed(
+  () => departmentProfiles.find((item) => item.id === selectedDepartmentId.value) || departmentProfiles[0],
+);
 
 function syncViewFromHash() {
   const next = window.location.hash.replace("#", "") || "home";
+  if (next.startsWith("department-")) {
+    const departmentId = next.replace("department-", "");
+    selectedDepartmentId.value = departmentProfiles.some((item) => item.id === departmentId)
+      ? departmentId
+      : departmentProfiles[0].id;
+    view.value = "department";
+    return;
+  }
   if (next === "admin" && !adminUnlocked.value) {
     view.value = "home";
     showAdminGate.value = true;
@@ -252,6 +336,17 @@ function go(next) {
   }
   window.location.hash = next === "home" ? "" : next;
   view.value = next;
+}
+
+function goDepartment(departmentId) {
+  selectedDepartmentId.value = departmentId;
+  window.location.hash = `department-${departmentId}`;
+  view.value = "department";
+}
+
+function applyDepartmentAndRegister(departmentName) {
+  form.preferredDepartment = departmentName;
+  go("register");
 }
 
 function submitAdminGate() {
@@ -417,10 +512,13 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
         <h2>部门介绍</h2>
       </div>
       <div class="department-grid">
-        <article class="department-card" v-for="[name, text, icon] in departmentCards" :key="name">
-          <span class="department-icon" aria-hidden="true">{{ icon }}</span>
-          <h3>{{ name }}</h3>
-          <p>{{ text }}</p>
+        <article class="department-card" v-for="department in departmentProfiles" :key="department.id">
+          <button type="button" @click="goDepartment(department.id)">
+            <span class="department-icon" aria-hidden="true">{{ department.icon }}</span>
+            <h3>{{ department.name }}</h3>
+            <p>{{ department.summary }}</p>
+            <strong>查看部门档案</strong>
+          </button>
         </article>
       </div>
     </section>
@@ -445,6 +543,80 @@ onUnmounted(() => window.removeEventListener("hashchange", syncViewFromHash));
           <span>03</span>
           <h3>面试跟进</h3>
           <p>后台更新审核状态，形成清晰的招新进度。</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <main v-else-if="view === 'department'" class="page-shell cyber-page department-detail-page">
+    <section class="department-detail-hero">
+      <div>
+        <p class="eyebrow">Department Profile</p>
+        <h1>{{ selectedDepartment.name }}</h1>
+        <p>{{ selectedDepartment.mission }}</p>
+        <div class="department-detail-actions">
+          <button class="primary-action neon-action" type="button" @click="applyDepartmentAndRegister(selectedDepartment.name)">
+            选择该部门并报名
+          </button>
+          <button class="secondary-action" type="button" @click="go('home')">返回部门列表</button>
+        </div>
+      </div>
+      <div class="department-emblem" aria-hidden="true">
+        <span>{{ selectedDepartment.icon }}</span>
+        <small>{{ selectedDepartment.id }}</small>
+      </div>
+    </section>
+
+    <section class="department-detail-layout">
+      <aside class="department-switcher" aria-label="部门切换">
+        <button
+          v-for="department in departmentProfiles"
+          :key="department.id"
+          type="button"
+          :class="{ active: selectedDepartment.id === department.id }"
+          @click="goDepartment(department.id)"
+        >
+          <span>{{ department.icon }}</span>
+          <strong>{{ department.name }}</strong>
+        </button>
+      </aside>
+
+      <div class="department-profile-grid">
+        <article class="department-profile-card wide">
+          <p class="eyebrow">Fit Check</p>
+          <h2>适合人群</h2>
+          <p>{{ selectedDepartment.suitedFor }}</p>
+        </article>
+        <article class="department-profile-card">
+          <p class="eyebrow">Learn</p>
+          <h2>能学到什么</h2>
+          <ul>
+            <li v-for="item in selectedDepartment.learn" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article class="department-profile-card">
+          <p class="eyebrow">Missions</p>
+          <h2>主要任务</h2>
+          <ul>
+            <li v-for="item in selectedDepartment.tasks" :key="item">{{ item }}</li>
+          </ul>
+        </article>
+        <article class="department-profile-card">
+          <p class="eyebrow">Baseline</p>
+          <h2>推荐基础</h2>
+          <p>{{ selectedDepartment.basics }}</p>
+        </article>
+        <article class="department-profile-card">
+          <p class="eyebrow">Advice</p>
+          <h2>报名建议</h2>
+          <p>{{ selectedDepartment.advice }}</p>
+        </article>
+        <article class="department-profile-card wide">
+          <p class="eyebrow">Signals</p>
+          <h2>能力关键词</h2>
+          <div class="department-tags">
+            <span v-for="tag in selectedDepartment.tags" :key="tag">{{ tag }}</span>
+          </div>
         </article>
       </div>
     </section>
