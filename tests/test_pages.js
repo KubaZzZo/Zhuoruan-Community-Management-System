@@ -89,3 +89,91 @@ runTest("registration view uses polished grouped application layout", () => {
   assert.ok(html.includes("联系与志愿"));
   assert.ok(html.includes("个人经历"));
 });
+
+runTest("Vue app exposes cyber recruitment routes from the design document", () => {
+  const html = read("src/App.vue");
+
+  assert.ok(html.includes('"matrix"'), "missing matrix view route");
+  assert.ok(html.includes('"arsenal"'), "missing arsenal view route");
+  assert.ok(html.includes("算力矩阵"));
+  assert.ok(html.includes("技术兵器谱"));
+  assert.ok(html.includes("api.zhuoruan.xyz"));
+});
+
+runTest("compute matrix includes public API gateway details", () => {
+  const html = read("src/App.vue");
+
+  assert.ok(html.includes("https://api.zhuoruan.xyz/v1"));
+  assert.ok(html.includes("OpenAI、Claude、Gemini"));
+  assert.ok(html.includes("Cherry Studio"));
+  assert.ok(html.includes("Lobe Chat"));
+  assert.ok(html.includes("绘图能力和任务能力"));
+  assert.ok(html.includes("GitHub OAuth"));
+  assert.ok(html.includes("Passkey"));
+});
+
+runTest("compute matrix visualizes model access with restrained logo grid", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes("modelLogos"));
+  assert.ok(html.includes("DeepSeek"));
+  assert.ok(html.includes("Qwen"));
+  assert.ok(html.includes("Kimi"));
+  assert.ok(html.includes("GLM"));
+  assert.ok(html.includes("model-logo"));
+  assert.ok(html.includes("logo.path"));
+  assert.ok(html.includes("<path :d=\"logo.path\">"));
+  assert.ok(css.includes(".model-logo"));
+  assert.ok(css.includes(".model-logo svg"));
+  assert.ok(css.includes("fill: currentColor"));
+  assert.ok(css.includes("--logo-delay"));
+  assert.ok(css.includes(".matrix-card:hover .model-logo"));
+});
+
+runTest("registration view keeps the full form inside a terminal themed shell", () => {
+  const html = read("src/App.vue");
+
+  assert.ok(html.includes("terminal-register"));
+  assert.ok(html.includes("join_zhuoruan.sh"));
+  assert.ok(html.includes("Root Access"));
+  assert.ok(html.includes("Welcome to Zhuoruan"));
+});
+
+runTest("visual polish includes interactive cyber and terminal details", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes("cyber-core-stage"), "missing draggable cyber core stage");
+  assert.ok(html.includes("typewriter-line"), "missing typewriter terminal lines");
+  assert.ok(html.includes("department-icon"), "missing department tech icons");
+  assert.ok(html.includes("compute-visual"), "missing compute matrix visualization");
+  assert.ok(html.includes("tech-logo"), "missing tech logo buttons");
+  assert.ok(css.includes(".terminal-register label::after"), "missing terminal input prompt styling");
+});
+
+runTest("showcase route presents project outcomes as a standalone gallery", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes('"showcase"'), "missing showcase route");
+  assert.ok(html.includes("开源展厅"));
+  assert.ok(html.includes("showcase-grid"));
+  assert.ok(html.includes("Multi-Agent"));
+  assert.ok(html.includes("project-tags"));
+  assert.ok(css.includes(".showcase-card"));
+  assert.ok(css.includes(".terminal-register label:focus-within::after"));
+});
+
+runTest("UI polish includes navigation, showcase tags, and focus micro-interactions", () => {
+  const html = read("src/App.vue");
+  const css = read("styles.css");
+
+  assert.ok(html.includes(":data-tag=\"tag\""), "missing project tag data hook");
+  assert.ok(css.includes(".nav a.active::after"), "missing active navigation cursor");
+  assert.ok(css.includes("backdrop-filter: blur(10px)"), "missing glass navigation blur");
+  assert.ok(css.includes(".showcase-card::before"), "missing showcase hover sheen");
+  assert.ok(css.includes('.project-tags em[data-tag="Vue3"]'), "missing Vue tag color");
+  assert.ok(css.includes('.project-tags em[data-tag="Docker"]'), "missing Docker tag color");
+  assert.ok(css.includes("inset 0 0 18px rgba(78, 244, 208, 0.06)"), "missing terminal focus glow");
+});
