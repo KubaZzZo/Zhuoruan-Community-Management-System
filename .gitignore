@@ -1,6 +1,14 @@
 node_modules/
 dist/
 .vite/
+data/
+backups/
+backend/target/
 .env
 .env.*
+!.env.example
+.permission-recovery/
+.verification/
 *.log
+tmp-verify-*
+tmp-admin-*.png

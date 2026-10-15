@@ -4,18 +4,27 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1",
-    "test": "node tests/test_app.js && node tests/test_pages.js",
+    "preview": "vite preview --host 0.0.0.0",
+    "start": "node server/index.cjs",
+    "test": "node tests/test_app.js && node tests/test_pages.js && node tests/test_server.js && node tests/test_mysql.js && node tests/test_regressions.js",
+    "test:mysql": "node tests/test_mysql_integration.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:migrate": "node server/migrate.cjs",
+    "sync:logic": "node sync-recruitment.cjs",
+    "pretest": "node sync-recruitment.cjs --check",
+    "prebuild": "node sync-recruitment.cjs --check",
+    "test:browser": "python tests/test_browser.py && python tests/test_frontend_browser.py"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^5.2.0",
+    "jpeg-js": "^0.4.4",
+    "mysql2": "^3.24.4",
     "vite": "^6.0.0",
-    "vue": "^3.5.0"
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

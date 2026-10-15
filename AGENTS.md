@@ -2,12 +2,14 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a Vue 3 front-end prototype for ZhuoRuan Information Studio.
+This repository is the ZhuoRuan Information Studio freshman recruitment site. The Vue 3 app talks to one Node API. Applications are stored in MySQL.
 
 - `index.html`: Vite HTML entry that mounts the Vue app.
-- `src/App.vue`: Vue views for homepage, recruitment form, and admin management.
+- `src/App.vue`: Vue views for the homepage, department pages, recruitment form, status lookup, and minister review.
 - `src/main.js`: Vue application bootstrap.
 - `src/recruitment.js` and `src/recruitment.cjs`: shared recruitment business logic.
+- `src/recruitmentApi.js`: browser client for the recruitment API.
+- `server/`: Node API. Vite mounts it during development, and `npm start` serves the built site with the same API.
 - `register.html`: legacy redirect to `index.html#register`.
 - `admin.html`: legacy redirect to `index.html#admin`.
 - `styles.css`: shared visual styling imported by the Vue app.
@@ -40,12 +42,10 @@ npm run build
 Use these commands from the repository root:
 
 ```bash
-node tests/test_app.js
-node tests/test_pages.js
 npm test
 ```
 
-`test_app.js` validates core application logic. `test_pages.js` checks required page fields and management elements.
+`test_app.js` validates core application logic. `test_pages.js` checks required page fields and management elements. `test_server.js` checks the API with a temporary JSON file, so it does not need MySQL.
 
 ## Coding Style & Naming Conventions
 
@@ -55,13 +55,13 @@ CSS should use class names that describe UI roles, for example `.site-header`, `
 
 ## Testing Guidelines
 
-Tests use Node's built-in `assert` module, with no external test framework. Add tests under `tests/` using the pattern `test_<area>.js`. When adding form fields or admin controls, update `src/App.vue` and `tests/test_pages.js`. When changing data behavior, update `tests/test_app.js`.
+Tests use Node's built-in `assert` module, with no external test framework. Add tests under `tests/` using the pattern `test_<area>.js`. When adding form fields or admin controls, update `src/App.vue` and `tests/test_pages.js`. When changing data behavior, update `tests/test_app.js` and `tests/test_server.js`.
 
-Run both test files before handing off changes.
+Run `npm test` before handing off changes.
 
 ## Commit & Pull Request Guidelines
 
-This directory is not currently a Git repository, so no existing commit history is available. If Git is initialized, use concise imperative commit messages, for example:
+This directory is a Git repository. Preserve existing uncommitted changes and use concise imperative commit messages, for example:
 
 ```bash
 git commit -m "Add recruitment form validation"
@@ -71,4 +71,4 @@ Pull requests should include a short summary, screenshots for visible UI changes
 
 ## Security & Configuration Tips
 
-Application data is stored in browser `localStorage`; it is suitable for demos, not sensitive production data. Spring Boot and MySQL are planned but not implemented. Do not commit real applicant data, private phone numbers, or exported browser storage.
+Application records are stored in the MySQL database `zhuoruan_recruitment`. Connection settings live in the root `.env` file: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE`. Do not commit `.env`, real applicant data, or private phone numbers. The browser only keeps an unsent form draft in `localStorage`. Staff sign-in is loaded by `server/accounts.cjs` from ignored local hash configuration; first startup creates random onboarding credentials under `data/`. Never restore hardcoded default passwords. `OPERATIONS.md` describes setup and retention policy. `npm run test:mysql` creates and removes only a randomly named `zhuoruan_test_*` database; never clear or write production records for verification. `tests/test_browser.cjs` uses temporary JSON data and its own browser tab.

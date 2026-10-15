@@ -1,10 +1,8 @@
 const assert = require("assert");
 const fs = require("fs");
-
-function read(path) {
-  return fs.readFileSync(path, "utf8");
+function read(file) {
+  return fs.readFileSync(file, "utf8");
 }
-
 function runTest(name, fn) {
   try {
     fn();
@@ -15,10 +13,27 @@ function runTest(name, fn) {
     process.exitCode = 1;
   }
 }
-
-runTest("Vue app contains every field from the source recruitment form", () => {
-  const html = read("src/App.vue");
-  const fieldNames = [
+const html = read("src/App.vue");
+const api = read("src/recruitmentApi.js");
+const css = read("styles.css");
+const pkg = read("package.json");
+runTest("freshman pages guide preparation, review, receipt recovery and next steps", () => {
+  for (const feature of [
+    "data-application-review",
+    "data-confirm-application",
+    "FreshmanJourney",
+    "RecruitmentReceipt",
+    "fieldHints",
+    "data-status-guidance",
+    "lookup-help",
+  ])
+    assert.ok(html.includes(feature), `missing freshman flow ${feature}`);
+  assert.ok(read("src/RecruitmentReceipt.vue").includes("data-download-receipt"));
+  assert.ok(read("src/FreshmanJourney.vue").includes("aria-current"));
+  assert.ok(css.includes("prefers-reduced-motion"));
+});
+runTest("registration form contains every server field", () => {
+  const fields = [
     "name",
     "gender",
     "birthDate",
@@ -27,322 +42,126 @@ runTest("Vue app contains every field from the source recruitment form", () => {
     "college",
     "departmentMajor",
     "className",
+    "studentId",
     "phone",
     "qq",
     "preferredDepartment",
     "acceptAdjustment",
-    "photo",
     "strengths",
     "awards",
     "experience",
     "careerPlan",
   ];
-
-  for (const fieldName of fieldNames) {
-    assert.ok(html.includes(`name="${fieldName}"`), `missing field ${fieldName}`);
-  }
+  for (const field of fields) assert.ok(html.includes(field), `missing field ${field}`);
+  assert.ok(html.includes('type="file"'));
+  assert.ok(html.includes("submitRecruitment"));
+  assert.ok(html.includes("policy.isOpen"));
 });
-
-runTest("main page uses Vite Vue entry instead of CDN scripts", () => {
-  const html = read("index.html");
-  const main = read("src/main.js");
-  const pkg = read("package.json");
-
-  assert.ok(html.includes('id="app"'));
-  assert.ok(html.includes('type="module" src="/src/main.js"'));
-  assert.ok(!html.includes("unpkg.com"));
-  assert.ok(main.includes("createApp"));
-  assert.ok(pkg.includes('"vue"'));
-  assert.ok(pkg.includes('"vite"'));
+runTest("public recruitment routes use server policy and lookup", () => {
+  assert.ok(html.includes("fetchRecruitmentPolicy"));
+  assert.ok(html.includes("lookupRecruitment"));
+  assert.ok(html.includes("statusLoading"));
+  assert.ok(html.includes("clearDraft"));
+  assert.ok(api.includes("/api/recruitment"));
+  assert.ok(api.includes("/api/applications/lookup"));
 });
-
-runTest("legacy pages route users back into the Vue single page app", () => {
+runTest("season cleanup requires a separate complete backup and saved-file confirmation", () => {
+  assert.ok(html.includes("data-backup-season"));
+  assert.ok(html.includes("backupDownloaded"));
+  assert.ok(html.includes("seasonBackup?.season !== filters.season"));
+  assert.ok(!html.includes("exportedSeason"));
+  assert.ok(api.includes("backupRecruitmentSeason"));
+});
+runTest("admin supports authorization, pagination, detail, correction, transfer and export", () => {
+  for (const item of [
+    "submitLogin",
+    "fetchRecruitmentList",
+    "fetchRecruitmentDetail",
+    "data-page-next",
+    "data-page-prev",
+    "data-refresh-applications",
+    "data-export-applications",
+    "data-correct-application",
+    "data-transfer-application",
+    "data-review-history",
+    "data-replace-photo",
+    "data-delete-application",
+    "data-staff-status",
+  ])
+    assert.ok(html.includes(item), `missing ${item}`);
+  for (const item of [
+    "correctRecruitment",
+    "transferRecruitment",
+    "changeRecruitmentStatus",
+    "exportRecruitmentList",
+    "replaceRecruitmentPhoto",
+    "deleteRecruitment",
+    "setStaffDisabled",
+  ])
+    assert.ok(api.includes(item), `missing API ${item}`);
+});
+runTest("direct recruitment excludes internal department", () => {
+  assert.ok(html.includes("const departments = DEPARTMENTS"));
+  assert.ok(html.includes("实干青年部"));
+  assert.match(html, /currentAccount\.role\s*===\s*['"]president['"]/);
+});
+runTest("department pages show positioning and all responsibilities with separate historical filters", () => {
+  assert.ok(html.includes("data-department-positioning"));
+  assert.ok(html.includes("data-department-responsibilities"));
+  assert.ok(html.includes("departmentProfile.responsibilities"));
+  assert.ok(!html.includes("departmentProfile.fit"));
+  assert.ok(!html.includes("departmentProfile.work"));
+  assert.ok(html.includes("历史部门（未迁移）"));
+});
+runTest("security and quality configuration remain present", () => {
+  assert.ok(!html.includes("zhuoruan2026"));
+  assert.ok(!html.includes("zhuoruan_recruitment_applications"));
+  assert.ok(pkg.includes("lint"));
+  assert.ok(pkg.includes("test:mysql"));
+  assert.ok(css.includes("@media (max-width: 640px)"));
+});
+runTest("registration goes directly to progress without questions or score controls", () => {
+  for (const legacy of ["data-quiz-form", "data-quiz-score", "data-filter-quiz", "submitRecruitmentQuiz", "基础题"])
+    assert.ok(!html.includes(legacy), `removed feature remains: ${legacy}`);
+  assert.ok(!api.includes("/quiz"));
+  assert.ok(!read("src/FreshmanJourney.vue").includes('view: "quiz"'));
+  assert.ok(html.includes('go("status");'));
+  assert.ok(html.includes("rememberReceipt"));
+  assert.ok(html.includes("RECEIPT_SESSION_KEY"));
+});
+runTest("legacy routes and site assets remain available", () => {
   assert.ok(read("register.html").includes("index.html#register"));
   assert.ok(read("admin.html").includes("index.html#admin"));
+  assert.ok(fs.existsSync("public/zhuoruan.png"));
+  assert.ok(!read("index.html").includes("fonts.googleapis.com"));
+  assert.ok(read("server/index.cjs").includes("Content-Security-Policy"));
+  assert.ok(read("server/index.cjs").includes("default-src 'self'"));
+  assert.ok(read("server/index.cjs").includes("img-src 'self' data: blob:"));
+});
+runTest("frontend protects focus, inline validation, drafts and unsaved editing", () => {
+  for (const control of [
+    "data-unsaved-changes",
+    "data-discard-changes",
+    "aria-describedby",
+    "onFormBlur",
+    "loginDialog",
+    "refreshPolicy",
+    "readReceipt",
+    "confirmDiscardChanges",
+  ])
+    assert.ok(html.includes(control), `missing frontend protection ${control}`);
+  assert.ok(html.includes("@click.prevent=\"focusContent('field-' + key)\""));
+  assert.ok(css.includes("scroll-margin-top"));
+  assert.ok(css.includes(".admin-notice.notice-success"));
+  assert.ok(css.includes(".admin-notice.notice-error"));
 });
 
-runTest("Vue admin view exposes management filters and application list", () => {
-  const html = read("src/App.vue");
-
-  assert.ok(html.includes("data-filter-department"));
-  assert.ok(html.includes("data-filter-status"));
-  assert.ok(html.includes("data-filter-keyword"));
-  assert.ok(html.includes("data-application-list"));
-  assert.ok(html.includes("data-application-detail"));
-});
-
-runTest("public navigation hides direct personnel management entry", () => {
-  const html = read("src/App.vue");
-
-  assert.ok(!html.includes("data-public-admin-link"));
-  assert.ok(html.includes("data-admin-gate"));
-  assert.ok(html.includes("管理员入口"));
-});
-
-runTest("registration view uses polished grouped application layout", () => {
-  const html = read("src/App.vue");
-
-  assert.ok(html.includes("form-side-panel"));
-  assert.ok(html.includes("form-section"));
-  assert.ok(html.includes("form-progress"));
-  assert.ok(html.includes("基本信息"));
-  assert.ok(html.includes("联系与志愿"));
-  assert.ok(html.includes("个人经历"));
-});
-
-runTest("Vue app exposes cyber recruitment routes from the design document", () => {
-  const html = read("src/App.vue");
-
-  assert.ok(html.includes('"matrix"'), "missing matrix view route");
-  assert.ok(html.includes('"mentor"'), "missing mentor view route");
-  assert.ok(html.includes('"arsenal"'), "missing arsenal view route");
-  assert.ok(html.includes("算力矩阵"));
-  assert.ok(html.includes("导师资源"));
-  assert.ok(html.includes("技术成长图谱"));
-  assert.ok(html.includes("api.zhuoruan.xyz"));
-});
-
-runTest("tech arsenal presents a richer computer learning map", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes("arsenalStages"), "missing staged learning roadmap");
-  assert.ok(html.includes("arsenalSkillNodes"), "missing skill node map");
-  assert.ok(html.includes("Java 基础"));
-  assert.ok(html.includes("Python 脚本"));
-  assert.ok(html.includes("数据结构"));
-  assert.ok(html.includes("Linux 命令"));
-  assert.ok(html.includes("自动化测试"));
-  assert.ok(html.includes("产品"));
-  assert.ok(html.includes("数据分析"));
-  assert.ok(html.includes("TypeScript"));
-  assert.ok(html.includes("Node.js"));
-  assert.ok(html.includes("Android"));
-  assert.ok(html.includes("Flutter"));
-  assert.ok(html.includes("Kubernetes"));
-  assert.ok(html.includes("MLOps"));
-  assert.ok(html.includes("UI/UX"));
-  assert.ok(html.includes("技术写作"));
-  assert.ok(html.includes("408"));
-  assert.ok(html.includes("软考"));
-  assert.ok(html.includes("网络工程"));
-  assert.ok(css.includes(".arsenal-roadmap"));
-  assert.ok(css.includes(".arsenal-modules"));
-});
-
-runTest("tech arsenal supports interactive skill node details", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes("selectedSkillId"), "missing selected skill state");
-  assert.ok(html.includes("selectedSkill = computed"), "missing selected skill computed value");
-  assert.ok(html.includes('@click="selectedSkillId = node.id"'), "missing skill node click handler");
-  assert.ok(html.includes("skill-detail-panel"), "missing skill detail panel");
-  assert.ok(html.includes("selectedSkill.practice"), "missing practice task binding");
-  assert.ok(html.includes("关联节点"), "missing related node section");
-  assert.ok(html.includes("relatedArsenalTracks"), "missing dynamic related track list");
-  assert.ok(html.includes("selectSkillByName"), "missing related node switch handler");
-  assert.ok(html.includes("hasSkillNode"), "missing related node availability state");
-  assert.ok(html.includes("selectedSkill.name }} 推荐方向"), "missing selected skill related heading");
-  assert.ok(html.includes("track.skillIds.includes(selectedSkill.value.id)"), "missing track filtering");
-  assert.ok(html.includes("RAG 入门"), "missing AI knowledge node detail");
-  assert.ok(html.includes("报名数据清洗脚本"), "missing Python practice task");
-  assert.ok(css.includes(".skill-detail-panel"));
-  assert.ok(css.includes(".skill-links"));
-  assert.ok(css.includes(".arsenal-related-heading"));
-  assert.ok(css.includes(".skill-links button.linked"));
-});
-
-runTest("compute matrix includes public API gateway details", () => {
-  const html = read("src/App.vue");
-
-  assert.ok(html.includes("https://api.zhuoruan.xyz/v1"));
-  assert.ok(html.includes("OpenAI、Claude、Gemini"));
-  assert.ok(html.includes("Cherry Studio"));
-  assert.ok(html.includes("Lobe Chat"));
-  assert.ok(html.includes("绘图能力和任务能力"));
-  assert.ok(html.includes("GitHub OAuth"));
-  assert.ok(html.includes("Passkey"));
-});
-
-runTest("compute matrix is focused on API resources while mentor content has its own page", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-  const matrixStart = html.indexOf("const matrixCards");
-  const matrixEnd = html.indexOf("const mentorTracks");
-  const matrixData = html.slice(matrixStart, matrixEnd);
-
-  assert.ok(!matrixData.includes("硬核导师镇场"), "mentor card should not stay in matrix data");
-  assert.ok(!matrixData.includes("项目训练场"), "project training card should not stay in matrix data");
-  assert.ok(html.includes("const mentorTracks"));
-  assert.ok(html.includes("Mentor System"));
-  assert.ok(html.includes("后端与架构"));
-  assert.ok(html.includes("竞赛与交付"));
-  assert.ok(html.includes("AI 工程实践"));
-  assert.ok(css.includes(".mentor-page"));
-  assert.ok(css.includes(".mentor-card"));
-  assert.ok(css.includes(".mentor-path"));
-});
-
-runTest("compute matrix visualizes model access with restrained logo grid", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes("modelLogos"));
-  assert.ok(html.includes("DeepSeek"));
-  assert.ok(html.includes("Qwen"));
-  assert.ok(html.includes("Kimi"));
-  assert.ok(html.includes("GLM"));
-  assert.ok(html.includes("model-logo"));
-  assert.ok(html.includes("logo.path"));
-  assert.ok(html.includes('<path :d="logo.path">'));
-  assert.ok(css.includes(".model-logo"));
-  assert.ok(css.includes(".model-logo svg"));
-  assert.ok(css.includes("fill: currentColor"));
-  assert.ok(css.includes("--logo-delay"));
-  assert.ok(css.includes(".matrix-card:hover .model-logo"));
-});
-
-runTest("registration view keeps the full form inside a terminal themed shell", () => {
-  const html = read("src/App.vue");
-
-  assert.ok(html.includes("terminal-register"));
-  assert.ok(html.includes("join_zhuoruan.sh"));
-  assert.ok(html.includes("Root Access"));
-  assert.ok(html.includes("Welcome to Zhuoruan"));
-});
-
-runTest("visual polish includes interactive cyber and terminal details", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes("hero-console-stage"), "missing hero console stage");
-  assert.ok(html.includes("zr-core.sh"), "missing hero console title");
-  assert.ok(html.includes("typewriter-line"), "missing typewriter terminal lines");
-  assert.ok(html.includes("department-icon"), "missing department tech icons");
-  assert.ok(html.includes("compute-visual"), "missing compute matrix visualization");
-  assert.ok(html.includes("tech-logo"), "missing tech logo buttons");
-  assert.ok(css.includes(".console-orbit"), "missing hero console orbit styles");
-  assert.ok(css.includes(".hero-console"), "missing hero console styles");
-  assert.ok(css.includes(".terminal-register label::after"), "missing terminal input prompt styling");
-});
-
-runTest("showcase route presents project outcomes as a standalone gallery", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes('"showcase"'), "missing showcase route");
-  assert.ok(html.includes("开源展厅"));
-  assert.ok(html.includes("showcase-grid"));
-  assert.ok(html.includes("Multi-Agent"));
-  assert.ok(html.includes("project-tags"));
-  assert.ok(css.includes(".showcase-card"));
-  assert.ok(css.includes(".terminal-register label:focus-within::after"));
-});
-
-runTest("department detail pages help applicants choose a fitting team", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes('"department"'), "missing department detail route");
-  assert.ok(html.includes("departmentProfiles"), "missing shared department profile data");
-  assert.ok(html.includes("goDepartment"), "missing department card navigation");
-  assert.ok(html.includes("Department Profile"), "missing department detail hero");
-  assert.ok(html.includes("适合人群"));
-  assert.ok(html.includes("能学到什么"));
-  assert.ok(html.includes("主要任务"));
-  assert.ok(html.includes("报名建议"));
-  assert.ok(html.includes("选择该部门并报名"));
-  assert.ok(html.includes("form.preferredDepartment = departmentName"), "missing register prefill");
-  assert.ok(css.includes(".department-detail-page"));
-  assert.ok(css.includes(".department-switcher"));
-  assert.ok(css.includes(".department-profile-card"));
-});
-
-runTest("UI polish includes navigation, showcase tags, and focus micro-interactions", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes(':data-tag="tag"'), "missing project tag data hook");
-  assert.ok(css.includes(".nav a.active::after"), "missing active navigation cursor");
-  assert.ok(css.includes("backdrop-filter: blur(10px)"), "missing glass navigation blur");
-  assert.ok(css.includes(".showcase-card::before"), "missing showcase hover sheen");
-  assert.ok(css.includes('.project-tags em[data-tag="Vue3"]'), "missing Vue tag color");
-  assert.ok(css.includes('.project-tags em[data-tag="Docker"]'), "missing Docker tag color");
-  assert.ok(css.includes("inset 0 0 18px rgba(78, 244, 208, 0.06)"), "missing terminal focus glow");
-});
-
-runTest("project engineering config supports aliases, chunks, api, permissions, and quality tools", () => {
-  const vite = read("vite.config.js");
-  const main = read("src/main.js");
-  const pkg = read("package.json");
-  const request = read("src/request.js");
-  const permissions = read("src/adminPermissions.js");
-  const eslint = read("eslint.config.mjs");
-  const prettier = read(".prettierrc.json");
-  const css = read("styles.css");
-
-  assert.ok(vite.includes('"@"'), "missing @ alias");
-  assert.ok(vite.includes("manualChunks"), "missing vendor chunk config");
-  assert.ok(vite.includes("vendor-vue"), "missing Vue vendor chunk");
-  assert.ok(main.includes('from "@/App.vue"'), "main entry should use @ alias");
-  assert.ok(request.includes("createRequestClient"), "missing request client factory");
-  assert.ok(request.includes("Authorization"), "missing auth header handling");
-  assert.ok(request.includes("response.status === 401"), "missing unauthorized handling");
-  assert.ok(permissions.includes("ADMIN_ROLES"), "missing static admin roles");
-  assert.ok(permissions.includes("getMenusForRole"), "missing role menu helper");
-  assert.ok(pkg.includes('"lint"'), "missing lint script");
-  assert.ok(pkg.includes('"format:check"'), "missing Prettier check script");
-  assert.ok(eslint.includes("eslint-plugin-vue"), "missing Vue ESLint config");
-  assert.ok(prettier.includes('"printWidth"'), "missing Prettier config");
-  assert.ok(css.includes("@media (max-width: 640px)"), "missing small-screen responsive polish");
-});
-
-runTest("recruitment flow supports draft saving and public status lookup", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes("FORM_DRAFT_KEY"), "missing recruitment draft storage key");
-  assert.ok(html.includes("watch(form, saveFormDraft"), "missing automatic draft watcher");
-  assert.ok(html.includes("loadFormDraft()"), "missing draft restore on mount");
-  assert.ok(html.includes("draftSavedAt"), "missing draft saved feedback");
-  assert.ok(html.includes('"status"'), "missing status route");
-  assert.ok(html.includes("statusQuery"), "missing status query state");
-  assert.ok(html.includes("searchApplicationStatus"), "missing status lookup handler");
-  assert.ok(html.includes("status-result"), "missing status result UI");
-  assert.ok(css.includes(".draft-status"), "missing draft status style");
-  assert.ok(css.includes(".status-layout"), "missing status page layout");
-});
-
-runTest("site adds activity, guide, member, and department choice surfaces with placeholders", () => {
-  const html = read("src/App.vue");
-  const css = read("styles.css");
-
-  assert.ok(html.includes("activityFeeds"), "missing activity feed data");
-  assert.ok(html.includes('"activity"'), "missing activity route");
-  assert.ok(html.includes("onboardingSteps"), "missing onboarding checklist");
-  assert.ok(html.includes("resourceLinks"), "missing resource placeholders");
-  assert.ok(html.includes("faqItems"), "missing FAQ content");
-  assert.ok(html.includes("memberWall"), "missing desensitized member wall");
-  assert.ok(html.includes("departmentChoiceCards"), "missing department chooser data");
-  assert.ok(html.includes("choice-helper"), "missing department choice helper UI");
-  assert.ok(html.includes("nav-more"), "missing grouped navigation menu");
-  assert.ok(css.includes(".activity-grid"), "missing activity grid styles");
-  assert.ok(css.includes(".guide-layout"), "missing guide page styles");
-  assert.ok(css.includes(".member-grid"), "missing member wall styles");
-  assert.ok(css.includes(".choice-grid"), "missing department chooser styles");
-  assert.ok(css.includes(".nav-more-menu"), "missing more navigation styles");
-});
-
-runTest("sharing and cursor polish are configured for mobile recruitment spread", () => {
-  const html = read("index.html");
-  const css = read("styles.css");
-
-  assert.ok(html.includes('property="og:title"'), "missing Open Graph title");
-  assert.ok(html.includes('property="og:description"'), "missing Open Graph description");
-  assert.ok(html.includes('property="og:image"'), "missing Open Graph image placeholder");
-  assert.ok(html.includes('name="theme-color"'), "missing browser theme color");
-  assert.ok(css.includes("cursor: default"), "global crosshair cursor should be removed");
-  assert.ok(css.includes("input,\ntextarea"), "missing text cursor override");
-  assert.ok(css.includes("button,\na,\nsummary,\nselect"), "missing pointer cursor override");
+runTest("registration hints and interview editing are removed", () => {
+  assert.ok(!html.includes('name: "填写学生证上的真实姓名。"'));
+  assert.ok(!html.includes('studentId: "8–20 位数字；'));
+  for (const field of ["interviewAt", "interviewLocation", "interviewer", "interviewSummary"])
+    assert.ok(!html.includes(`v-model="interview.${field}"`));
+  assert.ok(!html.includes("validateInterview"));
+  assert.ok(!html.includes("资料用途与填写说明"));
+  assert.ok(html.includes("保存审核"));
 });

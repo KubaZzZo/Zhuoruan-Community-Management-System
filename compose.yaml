@@ -1,0 +1,107 @@
+name: zhuoruan-recruitment
+
+x-app: &app
+  image: zhuoruan-recruitment:${APP_VERSION:-local}
+  build: .
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=32m,mode=1777
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  mem_limit: 384m
+  environment: &app-environment
+    NODE_ENV: production
+    PORT: 5173
+    TZ: Asia/Shanghai
+    MYSQL_HOST: db
+    MYSQL_PORT: 3306
+    MYSQL_DATABASE: zhuoruan_recruitment
+    MYSQL_USER: zhuoruan_app
+    MYSQL_PASSWORD: ${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD in .env}
+    TRUST_PROXY: ${TRUST_PROXY:-false}
+    SESSION_TTL_MINUTES: ${SESSION_TTL_MINUTES:-120}
+    RECRUITMENT_ENABLED: ${RECRUITMENT_ENABLED:-true}
+    RECRUITMENT_SEASON: ${RECRUITMENT_SEASON:-2026}
+    RECRUITMENT_OPENS_AT: ${RECRUITMENT_OPENS_AT:-}
+    RECRUITMENT_CLOSES_AT: ${RECRUITMENT_CLOSES_AT:-}
+    RECRUITMENT_RETENTION_DAYS: ${RECRUITMENT_RETENTION_DAYS:-180}
+    SUBMISSION_IP_LIMIT: ${SUBMISSION_IP_LIMIT:-600}
+    LOOKUP_IP_LIMIT: ${LOOKUP_IP_LIMIT:-1800}
+  depends_on:
+    db:
+      condition: service_healthy
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    mem_limit: 768m
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: zhuoruan_recruitment
+      MYSQL_USER: zhuoruan_migrate
+      MYSQL_PASSWORD: ${MIGRATION_DATABASE_PASSWORD:?Set MIGRATION_DATABASE_PASSWORD in .env}
+      APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD in .env}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init.sh:/docker-entrypoint-initdb.d/10-app-user.sh:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP -h 127.0.0.1 -u "$$MYSQL_USER" -D "$$MYSQL_DATABASE" -e "SELECT 1" >/dev/null'
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    <<: *app
+    profiles:
+      - maintenance
+    environment:
+      <<: *app-environment
+      MYSQL_USER: zhuoruan_migrate
+      MYSQL_PASSWORD: ${MIGRATION_DATABASE_PASSWORD:?Set MIGRATION_DATABASE_PASSWORD in .env}
+    command: ["node", "server/migrate.cjs"]
+    restart: "no"
+
+  app:
+    <<: *app
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-18185}:5173"
+    volumes:
+      - staff_data:/app/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5173/api/recruitment').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  mysql_data:
+  staff_data:

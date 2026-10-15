@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+dist
+data
+backups
+.verification
+.permission-recovery
+*.log
+tmp-*
+*.docx

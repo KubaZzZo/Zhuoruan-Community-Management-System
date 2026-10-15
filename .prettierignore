@@ -1,3 +1,9 @@
 dist
 node_modules
 package-lock.json
+data
+.permission-recovery
+.verification
+.env
+tmp-verify-*
+tmp-admin-*.png
