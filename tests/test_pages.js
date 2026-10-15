@@ -65,6 +65,11 @@ runTest("public recruitment routes use server policy and lookup", () => {
   assert.ok(api.includes("/api/recruitment"));
   assert.ok(api.includes("/api/applications/lookup"));
 });
+runTest("registration and staff corrections share the current college choices", () => {
+  assert.ok(html.includes("const colleges = COLLEGES"));
+  assert.match(html, /v-model="form\.college"[\s\S]*?<option v-for="item in colleges"/);
+  assert.match(html, /v-model="correction\[key\]" :name="key">\s*<option v-for="item in colleges"/);
+});
 runTest("season cleanup requires a separate complete backup and saved-file confirmation", () => {
   assert.ok(html.includes("data-backup-season"));
   assert.ok(html.includes("backupDownloaded"));

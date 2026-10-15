@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { attachRecruitmentApi, clientAddress, createRecruitmentService } = require("../server/api.cjs");
 const { createApplicationStore } = require("../server/store.cjs");
-const { createAccountBook, hashPassword, setAccountDisabled } = require("../server/accounts.cjs");
+const { STAFF_ROLES, createAccountBook, hashPassword, setAccountDisabled } = require("../server/accounts.cjs");
 const { loadRecruitmentConfig, publicPolicy } = require("../server/config.cjs");
 
 const accounts = [
@@ -32,7 +32,7 @@ const validApplication = {
   birthDate: "2005-03",
   ethnicity: "汉族",
   politicalStatus: "共青团员",
-  college: "科文学院",
+  college: "人工智能与软件学院",
   departmentMajor: "软件工程系",
   className: "软件工程 2401",
   studentId: "202401010001",
@@ -429,6 +429,32 @@ async function main() {
     const saltedB = createAccountBook(accounts);
     assert.notStrictEqual(saltedA[0].salt, saltedB[0].salt);
     assert.strictEqual(saltedA[0].password, undefined);
+    const departmentAccounts = STAFF_ROLES.filter(
+      (account) => account.role === "minister" && account.department !== "实干青年部",
+    );
+    assert.deepStrictEqual(
+      departmentAccounts.map(({ username, department }) => [username, department]),
+      [
+        ["zhuoruan123", "综合运营部"],
+        ["zhuoruan1234", "数据算法部"],
+        ["zhuoruan12345", "工程项目部"],
+      ],
+    );
+    const departmentService = createRecruitmentService({
+      store: createApplicationStore(path.join(directory, "department-accounts.json")),
+      accounts: departmentAccounts.map((account) => ({ ...account, password: "test-department-password" })),
+      config,
+    });
+    for (const account of departmentAccounts) {
+      const login = departmentService.login(account.username, "test-department-password", "department-accounts");
+      assert.strictEqual(login.account.department, account.department);
+      assert.strictEqual(login.account.role, "minister");
+      assert.throws(
+        () => departmentService.listStaff(login.token),
+        (error) => error.status === 403,
+      );
+    }
+    console.log("PASS configured department usernames retain their minister department and permission scope");
     const parallel = createApplicationStore(path.join(directory, "parallel.json"));
     const results = await Promise.allSettled([
       parallel.insert({ ...validApplication, id: "1" }),

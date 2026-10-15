@@ -31,7 +31,7 @@ async function main() {
       birthDate: "2005-03",
       ethnicity: "汉族",
       politicalStatus: "共青团员",
-      college: "科文学院",
+      college: "人工智能与软件学院",
       departmentMajor: "软件工程系",
       className: "软件工程测试班",
       studentId: String(202600000000 + i),

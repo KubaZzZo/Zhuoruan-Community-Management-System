@@ -6,9 +6,9 @@ const { ALL_DEPARTMENTS, LEGACY_DEPARTMENTS } = require("../src/recruitment.cjs"
 
 const STAFF_ROLES = [
   { username: "shezhang", role: "president", name: "社长", department: "" },
-  { username: "yunying", role: "minister", name: "综合运营部部长", department: "综合运营部" },
-  { username: "suanfa", role: "minister", name: "数据算法部部长", department: "数据算法部" },
-  { username: "gongcheng", role: "minister", name: "工程项目部部长", department: "工程项目部" },
+  { username: "zhuoruan123", role: "minister", name: "综合运营部部长", department: "综合运营部" },
+  { username: "zhuoruan1234", role: "minister", name: "数据算法部部长", department: "数据算法部" },
+  { username: "zhuoruan12345", role: "minister", name: "工程项目部部长", department: "工程项目部" },
   { username: "shigan", role: "minister", name: "实干青年部部长", department: "实干青年部" },
 ];
 

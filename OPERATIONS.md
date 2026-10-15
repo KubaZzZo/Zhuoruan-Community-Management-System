@@ -14,7 +14,7 @@ npm run dev
 
 ## 工作人员账号
 
-首次运行 API 时，在本机 `data/staff-accounts.json` 保存带随机盐的密码哈希；随机初始口令单独保存在 `data/staff-initial-passwords.json`。新部署账号名为 `shezhang`、`yunying`、`suanfa`、`gongcheng`、`shigan`。已有账号文件不会自动改名或改权限。原源码固定口令不再有效。
+首次运行 API 时，在本机 `data/staff-accounts.json` 保存带随机盐的密码哈希；随机初始口令单独保存在 `data/staff-initial-passwords.json`。新部署账号名为 `shezhang`、`zhuoruan123`、`zhuoruan1234`、`zhuoruan12345`、`shigan`。已有账号文件不会自动改名或改权限。原源码固定口令不再有效。
 
 管理员在本机查看初始口令，分别交给对应工作人员后移除初始口令文件，保留哈希账号文件。这两个文件都属于忽略提交的 `data/` 目录，不能上传到公开仓库或共享网盘。管理入口是站点 `/#admin`。
 

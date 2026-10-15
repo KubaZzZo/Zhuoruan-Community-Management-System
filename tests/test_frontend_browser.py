@@ -58,6 +58,9 @@ def freshman_flow(browser, origin, root):
         expect(page.locator("[data-freshman-journey] [aria-current=step]")).to_contain_text("填写报名")
         expect(page.locator("#page-title")).to_be_focused()
         expect(page).to_have_title("填写报名表 · 卓软信息工作室")
+        assert page.locator("select[name=college] option").all_text_contents() == [
+            "请选择", "人工智能与软件学院", "电气与智能制造学院", "经济学院", "管理学院", "文理学院", "传媒与设计学院",
+        ]
         page.screenshot(path=str(output / "freshman-registration-mobile.png"), full_page=True)
         fields = {
             "name": "新生流程测试", "birthDate": "2007-03", "ethnicity": "汉族",
@@ -66,7 +69,7 @@ def freshman_flow(browser, origin, root):
         }
         for key, value in fields.items():
             page.locator(f".application-form input[name={key}]").fill(value)
-        for key, value in {"gender": "男", "politicalStatus": "共青团员", "college": "科文学院", "acceptAdjustment": "是"}.items():
+        for key, value in {"gender": "男", "politicalStatus": "共青团员", "college": "人工智能与软件学院", "acceptAdjustment": "是"}.items():
             page.locator(f".application-form select[name={key}]").select_option(value)
         for key, value in {"strengths": "喜欢网页开发，想学编程", "careerPlan": "希望学习网页开发并参与项目"}.items():
             page.locator(f"textarea[name={key}]").fill(value)

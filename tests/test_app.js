@@ -1,6 +1,7 @@
 const assert = require("assert");
 const {
   ALL_DEPARTMENTS,
+  COLLEGES,
   DEPARTMENTS,
   createRecruitmentRecord,
   isPortraitPhoto,
@@ -31,7 +32,7 @@ const validApplication = {
   birthDate: "2005-03",
   ethnicity: "汉族",
   politicalStatus: "共青团员",
-  college: "科文学院",
+  college: "人工智能与软件学院",
   departmentMajor: "软件工程系",
   className: "软件工程 2401",
   studentId: "202401010001",
@@ -136,6 +137,24 @@ runTest("blocks direct internal-department signup but permits staff validation a
   for (const value of [null, [], { ...validApplication, name: {} }, { ...validApplication, qq: 12345 }]) {
     assert.strictEqual(validateApplication(value).valid, false);
   }
+});
+
+runTest("six current colleges govern signup and preserve existing historical colleges", () => {
+  assert.deepStrictEqual(COLLEGES, [
+    "人工智能与软件学院",
+    "电气与智能制造学院",
+    "经济学院",
+    "管理学院",
+    "文理学院",
+    "传媒与设计学院",
+  ]);
+  for (const college of COLLEGES) {
+    assert.ok(validateApplication({ ...validApplication, photoData: tinyPhoto, college }).valid);
+  }
+  const historical = { ...validApplication, photoData: tinyPhoto, college: "科文学院" };
+  assert.strictEqual(validateApplication(historical).valid, false);
+  assert.ok(validateApplication(historical, { legacy: { college: "科文学院" } }).valid);
+  assert.strictEqual(validateApplication(historical, { legacy: { college: "理工学院" } }).valid, false);
 });
 
 runTest("current departments govern signup while historical corrections retain their department", () => {

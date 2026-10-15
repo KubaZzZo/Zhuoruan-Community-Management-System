@@ -6,7 +6,7 @@ const DEPARTMENTS = ALL_DEPARTMENTS.filter((department) => department !== "实�
 const STATUSES = ["待审核", "待面试", "已面试", "通过", "未通过"];
 const GENDERS = ["男", "女"];
 const POLITICAL_STATUSES = ["群众", "共青团员", "中共预备党员", "中共党员", "民主党派", "无党派人士"];
-const COLLEGES = ["经济学院", "管理学院", "法政学院", "外国语学院", "教育学院", "文学院", "理工学院", "科文学院"];
+const COLLEGES = ["人工智能与软件学院", "电气与智能制造学院", "经济学院", "管理学院", "文理学院", "传媒与设计学院"];
 const REVIEW_NOTE_LIMIT = 500;
 const PHOTO_DATA_LIMIT = 450_000;
 const DEPARTMENT_PROFILES = [

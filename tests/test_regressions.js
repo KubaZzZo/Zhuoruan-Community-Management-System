@@ -39,7 +39,7 @@ const fixture = {
   birthDate: "2005-03",
   ethnicity: "汉族",
   politicalStatus: "群众",
-  college: "科文学院",
+  college: "人工智能与软件学院",
   departmentMajor: "软件工程",
   className: "测试班",
   studentId: "202600000001",
