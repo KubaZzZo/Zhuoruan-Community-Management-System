@@ -110,6 +110,13 @@ runTest("direct recruitment excludes internal department", () => {
   assert.ok(html.includes("实干青年部"));
   assert.match(html, /currentAccount\.role\s*===\s*['"]president['"]/);
 });
+runTest("staff can edit and copy recruitment notices with unsent-change protection", () => {
+  assert.match(html, /<textarea[\s\S]*?v-model="noticeText"[\s\S]*?data-notice-editor/);
+  assert.ok(html.includes("data-reset-notice"));
+  assert.ok(html.includes("data-notice-unsaved"));
+  assert.ok(html.includes("await copyText(text)"));
+  assert.ok(html.includes("QQ 新生群号码"));
+});
 runTest("department pages show positioning and all responsibilities with separate historical filters", () => {
   assert.ok(html.includes("data-department-positioning"));
   assert.ok(html.includes("data-department-responsibilities"));
