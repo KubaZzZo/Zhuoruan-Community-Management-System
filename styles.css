@@ -4037,7 +4037,11 @@ h2[tabindex="-1"]:focus {
   font-size: 13px;
 }
 .review-workspace .notice-preview {
+  display: block;
+  width: 100%;
   max-width: 100%;
+  min-height: 180px;
+  margin: 8px 0 12px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

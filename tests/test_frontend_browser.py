@@ -4,6 +4,7 @@ import base64
 from datetime import datetime, timezone
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -22,6 +23,20 @@ def freshman_flow(browser, origin, root):
         page.wait_for_load_state("networkidle")
         expect(page.locator(".hero h1")).to_contain_text("从你的兴趣开始")
         expect(page.locator(".department-card")).to_have_count(4)
+        expect(page.locator("[data-studio-project]")).to_contain_text("卓软招新系统")
+        page.get_by_role("link", name="作品展示", exact=True).click()
+        expect(page.locator("#works-title")).to_be_focused()
+        page.get_by_role("button", name="体验报名页面", exact=False).click()
+        expect(page.locator(".application-form")).to_be_visible()
+        page.locator(".nav a[href='#home']").click()
+        page.get_by_role("link", name="部门方向", exact=True).click()
+        expect(page.locator("#departments-title")).to_be_focused()
+        page.get_by_role("button", name="认识数据算法部", exact=False).click()
+        expect(page.locator("[data-department-guide]")).to_contain_text("选一门语言")
+        expect(page.locator("[data-department-guide]")).to_contain_text("不是额外考题或录取条件")
+        page.get_by_role("button", name="选择该部门并报名").click()
+        expect(page.locator("select[name=preferredDepartment]")).to_have_value("数据算法部")
+        page.locator(".nav a[href='#home']").click()
         page.locator(".faq-list summary").first.click()
         expect(page.locator(".faq-list details").first).to_have_attribute("open", "")
         for width, height in [(320, 844), (375, 844), (844, 390), (768, 1024), (1440, 1000)]:
@@ -30,8 +45,10 @@ def freshman_flow(browser, origin, root):
         output = root / ".verification"
         page.evaluate("window.scrollTo(0, 0)")
         page.screenshot(path=str(output / "freshman-home-desktop.png"), full_page=True)
+        page.screenshot(path=str(output / "studio-home-desktop-viewport.png"))
         page.set_viewport_size({"width": 390, "height": 844})
         page.screenshot(path=str(output / "freshman-home-mobile.png"), full_page=True)
+        page.screenshot(path=str(output / "studio-home-mobile-viewport.png"))
         page.locator(".department-card button").filter(has_text="实干青年部").click()
         expect(page.locator("#page-title")).to_have_text("实干青年部")
         profiles = json.loads(subprocess.check_output(["node", "-e", "process.stdout.write(JSON.stringify(require('./src/recruitment.cjs').DEPARTMENT_PROFILES))"], cwd=root, text=True, encoding="utf-8"))
@@ -157,6 +174,69 @@ def freshman_flow(browser, origin, root):
         print("PASS freshman: homepage/FAQ, department choice, restored draft, review-before-write, retry, real signup, receipt download, receipt recovery, prefilled lookup and offline feedback")
     finally:
         context.close()
+
+
+def parallax_flow(browser, origin, root):
+    context = browser.new_context(viewport={"width": 1440, "height": 1000})
+    exceptions = []
+    try:
+        page = context.new_page()
+        page.on("pageerror", lambda error: exceptions.append(str(error)))
+        page.goto(origin)
+        page.wait_for_load_state("networkidle")
+        hero = page.locator(".studio-hero")
+        expect(hero).to_have_class(re.compile(r"has-depth-motion"))
+        button = page.get_by_role("button", name="加入卓软", exact=False)
+        original_button = button.bounding_box()
+        page.mouse.move(100, 200)
+        page.wait_for_function("() => Number(document.querySelector('.studio-hero').style.getPropertyValue('--hero-x')) < -0.7")
+        left = page.locator(".studio-workspace").evaluate("el => getComputedStyle(el).transform")
+        page.screenshot(path=str(root / ".verification/parallax-left.png"))
+        page.mouse.move(1320, 780)
+        page.wait_for_function("() => Number(document.querySelector('.studio-hero').style.getPropertyValue('--hero-x')) > 0.7")
+        right = page.locator(".studio-workspace").evaluate("el => getComputedStyle(el).transform")
+        assert left != right and "matrix3d" in right
+        assert page.locator(".workspace-room").evaluate("el => getComputedStyle(el).transform") != page.locator(".workspace-foreground").evaluate("el => getComputedStyle(el).transform")
+        moved_button = button.bounding_box()
+        assert all(abs(original_button[key] - moved_button[key]) < 1 for key in ("x", "y", "width", "height")), "primary action must not move"
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.screenshot(path=str(root / ".verification/parallax-right.png"))
+        page.mouse.move(10, 10)
+        page.wait_for_function("() => document.querySelector('.studio-hero').style.getPropertyValue('--hero-x') === '0.0000' && !document.querySelector('.studio-hero').classList.contains('is-depth-moving')")
+        page.mouse.move(1280, 700)
+        page.wait_for_function("() => Number(document.querySelector('.studio-hero').style.getPropertyValue('--hero-x')) > 0.5")
+        page.emulate_media(reduced_motion="reduce")
+        page.wait_for_function("() => !document.querySelector('.studio-hero').classList.contains('has-depth-motion')")
+        assert page.locator(".studio-workspace").evaluate("el => getComputedStyle(el).transform") == "none"
+        assert hero.evaluate("el => Number(el.style.getPropertyValue('--hero-x'))") == 0
+        page.emulate_media(reduced_motion="no-preference")
+        expect(hero).to_have_class(re.compile(r"has-depth-motion"))
+        page.mouse.move(110, 250)
+        page.wait_for_function("() => Number(document.querySelector('.studio-hero').style.getPropertyValue('--hero-x')) < -0.5")
+        page.evaluate("window.scrollTo(0, 150)")
+        page.wait_for_function("() => document.querySelector('.studio-hero').style.getPropertyValue('--hero-x') === '0.0000'")
+        page.evaluate("window.scrollTo(0, 0)")
+        button.click()
+        expect(page.locator(".application-form")).to_be_visible()
+        page.get_by_role("link", name="了解卓软", exact=True).click()
+        page.mouse.move(1300, 700)
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.wait_for_function("() => !document.querySelector('.studio-hero').classList.contains('has-depth-motion')")
+        assert page.locator(".studio-workspace").evaluate("el => getComputedStyle(el).transform") == "none"
+        assert not exceptions, exceptions
+    finally:
+        context.close()
+    touch = browser.new_context(viewport={"width": 1024, "height": 768}, has_touch=True, is_mobile=True)
+    try:
+        page = touch.new_page()
+        page.goto(origin)
+        page.wait_for_load_state("networkidle")
+        assert "has-depth-motion" not in page.locator(".studio-hero").get_attribute("class")
+        page.get_by_role("button", name="加入卓软", exact=False).tap()
+        expect(page.locator(".application-form")).to_be_visible()
+    finally:
+        touch.close()
+    print("PASS parallax: mouse-driven 3D layers, stationary signup button, reset and frame settling, live reduced-motion preference, scroll, navigation teardown, narrow screens and touch-only devices")
 
 
 def main():
@@ -295,6 +375,58 @@ def main():
                 rows.first.click()
                 expect(page.locator(".status-editor textarea")).to_be_enabled()
                 selected_id = page.locator(".detail-heading p").inner_text()
+                notice = page.locator("[data-notice-editor]")
+                default_notice = notice.input_value()
+                custom_notice = default_notice + "\n请加入 QQ 新生群：123456789（测试群号）。"
+                page.evaluate("Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: async text => { window.testCopiedNotice = text; }}})")
+                notice.fill(custom_notice)
+                expect(page.locator("[data-notice-unsaved]")).to_be_visible()
+                page.locator("[data-refresh-applications]").click()
+                page.wait_for_load_state("networkidle")
+                expect(notice).to_have_value(custom_notice)
+                page.once("dialog", lambda dialog: dialog.dismiss())
+                rows.nth(1).click()
+                expect(page.locator(".detail-heading p")).to_have_text(selected_id)
+                expect(notice).to_have_value(custom_notice)
+                page.once("dialog", lambda dialog: dialog.dismiss())
+                page.locator(".nav a[href='#status']").click()
+                expect(page).to_have_url(origin + "/#admin")
+                page.once("dialog", lambda dialog: dialog.dismiss())
+                page.locator("[data-header-logout]").click()
+                expect(page).to_have_url(origin + "/#admin")
+                page.locator(".status-editor textarea").fill("通知测试审核备注")
+                expect(page.locator("[data-copy-notice]")).to_be_disabled()
+                page.locator(".status-editor button[type=submit]").click()
+                expect(page.locator("[data-copy-notice]")).to_be_enabled()
+                expect(notice).to_have_value(custom_notice)
+                page.evaluate("() => { navigator.clipboard.writeText = async () => { throw new Error('test denied'); }; }")
+                page.locator("[data-copy-notice]").click()
+                expect(page.locator(".admin-notice")).to_contain_text("复制失败")
+                expect(page.locator("[data-notice-unsaved]")).to_be_visible()
+                page.evaluate("() => { navigator.clipboard.writeText = async text => { window.testCopiedNotice = text; }; }")
+                page.locator("[data-copy-notice]").click()
+                expect(page.locator("[data-notice-unsaved]")).to_have_count(0)
+                assert page.evaluate("window.testCopiedNotice") == custom_notice
+                page.locator(".review-notification").screenshot(path=str(output / "editable-notice-mobile.png"))
+                page.set_viewport_size({"width": 1440, "height": 1000})
+                page.locator(".review-notification").screenshot(path=str(output / "editable-notice-desktop.png"))
+                page.set_viewport_size({"width": 390, "height": 844})
+                rows.nth(1).click()
+                expect(page.locator(".detail-heading p")).not_to_have_text(selected_id)
+                expect(notice).not_to_have_value(custom_notice)
+                assert "123456789" not in notice.input_value(), "custom notice must not leak to another applicant"
+                notice.fill("   \n ")
+                expect(page.locator("[data-copy-notice]")).to_be_disabled()
+                page.locator("[data-reset-notice]").click()
+                assert "报名状态" in notice.input_value()
+                expect(page.locator("[data-notice-unsaved]")).to_have_count(0)
+                page.locator(".status-editor select").select_option("已面试")
+                page.locator(".status-editor button[type=submit]").click()
+                expect(notice).to_have_value(re.compile(".*「已面试」.*", re.DOTALL))
+                rows.first.click()
+                expect(page.locator(".detail-heading p")).to_have_text(selected_id)
+                expect(notice).to_have_value(default_notice)
+                print("PASS frontend: editable notices copy exact QQ group text, preserve drafts on refresh/save, protect uncopied edits, handle copy failure, reject blank text, reset and isolate applicants")
                 page.locator(".status-editor textarea").fill("尚未保存的审核备注")
                 page.locator("[data-correct-application]").click()
                 page.locator("[data-correction-form] input[name=name]").fill("尚未保存的姓名")
@@ -351,6 +483,7 @@ def main():
                 page.screenshot(path=str(output / "frontend-admin-mobile.png"), full_page=True)
                 print("PASS frontend: deleting the final page returns to a valid page; no JavaScript errors")
                 freshman_flow(browser, origin, root)
+                parallax_flow(browser, origin, root)
             finally:
                 browser.close()
     finally:

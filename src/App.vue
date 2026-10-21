@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import RecruitmentReceipt from "./RecruitmentReceipt.vue";
 import FreshmanJourney from "./FreshmanJourney.vue";
+import StudioHome from "./StudioHome.vue";
+import { DEPARTMENT_GUIDES } from "./studioContent.js";
 import {
   ALL_DEPARTMENTS,
   COLLEGES,
@@ -113,6 +115,8 @@ const detailLoading = ref(false);
 const saving = ref(false);
 const pendingStatus = ref("");
 const pendingNote = ref("");
+const noticeDraft = ref(null);
+const copiedNotice = ref(null);
 const adminNotice = ref("");
 const adminNoticeType = ref("info");
 const exportLoading = ref(false);
@@ -227,6 +231,7 @@ const reviewGuidance = computed(() =>
 );
 const reviewActionLabels = { review: "审核", correct: "更正资料", transfer: "调剂部门", photo: "更换照片" };
 const departmentProfile = computed(() => profiles.find((item) => item.name === activeDepartment.value) || profiles[0]);
+const departmentGuide = computed(() => DEPARTMENT_GUIDES[departmentProfile.value.name]);
 const selectedLocked = computed(() =>
   Boolean(selected.value?.season && policy.value.season && selected.value.season !== policy.value.season),
 );
@@ -313,7 +318,25 @@ const correctionDirty = computed(
     correctionKeys.some((key) => correction[key] !== (selected.value[key] || "")),
 );
 const detailDirty = computed(() => reviewDirty.value || correctionDirty.value);
+const defaultNotice = computed(() => (selected.value ? recruitmentNotice(selected.value) : ""));
+const noticeText = computed({
+  get: () => noticeDraft.value ?? defaultNotice.value,
+  set: (value) => (noticeDraft.value = value),
+});
+const noticeDirty = computed(
+  () =>
+    Boolean(selected.value) &&
+    noticeDraft.value !== null &&
+    noticeDraft.value !== defaultNotice.value &&
+    noticeDraft.value !== copiedNotice.value,
+);
 const detailBusy = computed(() => saving.value || removing.value || photoReplacing.value);
+
+function resetNotice() {
+  noticeDraft.value = null;
+  copiedNotice.value = null;
+}
+watch(() => selected.value?.id, resetNotice, { flush: "sync" });
 
 function setAdminNotice(text, type = "success") {
   adminNotice.value = text;
@@ -325,20 +348,21 @@ function resetSelectedEdits() {
     pendingNote.value = selected.value.reviewNote || "";
   }
   correctionOpen.value = false;
+  resetNotice();
 }
 function confirmDiscardChanges() {
   if (detailBusy.value) {
     setAdminNotice("正在处理这条报名，请等待完成后继续。", "info");
     return false;
   }
-  if (!detailDirty.value) return true;
-  if (!window.confirm("当前报名有未保存的修改。放弃修改并继续？")) return false;
+  if (!detailDirty.value && !noticeDirty.value) return true;
+  if (!window.confirm("当前报名有未保存的修改或尚未复制的通知。放弃修改并继续？")) return false;
   resetSelectedEdits();
   return true;
 }
 function onBeforeUnload(event) {
   saveDraft();
-  if (!detailDirty.value && !detailBusy.value) return;
+  if (!detailDirty.value && !noticeDirty.value && !detailBusy.value) return;
   event.preventDefault();
   event.returnValue = "";
 }
@@ -436,6 +460,12 @@ function openDepartment(name) {
   view.value = "department";
   window.location.hash = `department-${encodeURIComponent(name)}`;
   window.scrollTo(0, 0);
+}
+async function openHomeSection(id) {
+  if (view.value === "admin" && !confirmDiscardChanges()) return;
+  go("home");
+  await nextTick();
+  focusContent(id);
 }
 function registerFor(name) {
   form.preferredDepartment = name;
@@ -735,6 +765,7 @@ async function loadApplications(nextPage = page.value) {
       selected.value?.id === selectedId &&
       detailId === detailRequestId &&
       !detailDirty.value &&
+      !noticeDirty.value &&
       !saving.value &&
       !photoReplacing.value &&
       !removing.value
@@ -746,6 +777,7 @@ async function loadApplications(nextPage = page.value) {
           selected.value?.id === selectedId &&
           detailId === detailRequestId &&
           !detailDirty.value &&
+          !noticeDirty.value &&
           !saving.value &&
           !photoReplacing.value &&
           !removing.value
@@ -1060,8 +1092,16 @@ async function copyNotice() {
     setAdminNotice("请先保存或放弃未保存的修改，再复制通知。", "info");
     return;
   }
+  const text = noticeText.value;
+  const recordId = selected.value.id;
+  if (!text.trim()) {
+    setAdminNotice("请先填写通知内容。", "info");
+    return;
+  }
   try {
-    await copyText(recruitmentNotice(selected.value));
+    await copyText(text);
+    if (selected.value?.id !== recordId) return;
+    copiedNotice.value = text;
     setAdminNotice("通知文本已复制，可粘贴到 QQ。");
   } catch {
     setAdminNotice("复制失败，请手动选择通知文本。", "error");
@@ -1425,7 +1465,7 @@ watch(
 
 <template>
   <a class="skip-link" href="#page-title" :inert="showLogin" @click.prevent="focusContent('page-title')">跳到内容</a>
-  <header class="site-header" :inert="showLogin">
+  <header class="site-header" :class="{ 'studio-header': view === 'home' }" :inert="showLogin">
     <a class="brand" href="#home" @click.prevent="go('home')"
       ><img src="/zhuoruan.png" alt="卓软信息工作室标志" width="52" height="52" /><span class="brand-copy"
         ><strong>卓软信息工作室</strong></span
@@ -1439,6 +1479,8 @@ watch(
         @click.prevent="go('home')"
         >了解卓软</a
       >
+      <a v-if="view === 'home'" href="#home" @click.prevent="openHomeSection('works-title')">作品展示</a>
+      <a v-if="view === 'home'" href="#home" @click.prevent="openHomeSection('departments-title')">部门方向</a>
       <a
         href="#register"
         :aria-current="view === 'register' ? 'page' : undefined"
@@ -1498,109 +1540,19 @@ watch(
       </form>
     </section>
   </div>
-  <main :inert="showLogin" v-if="view === 'home'" class="freshman-home">
-    <section class="hero">
-      <div class="hero-content">
-        <p class="eyebrow">江苏师范大学科文学院 · 卓软信息工作室</p>
-        <h1 id="page-title" tabindex="-1">大学的第一份作品，<br /><span>从你的兴趣开始。</span></h1>
-        <p class="hero-copy">
-          这里有代码、项目、设计，也有沟通和活动组织。先了解你感兴趣的部门，再告诉我们你是谁、想学什么。
-        </p>
-        <div class="hero-actions">
-          <button class="primary-action" type="button" @click="go('register')">
-            {{ policy.isOpen ? "开始填写报名" : "查看报名表" }}<span aria-hidden="true"> →</span>
-          </button>
-          <button class="secondary-action" type="button" @click="focusContent('departments-title')">先了解部门</button>
-        </div>
-        <p class="hero-returning">
-          已经提交过？<a href="#status" @click.prevent="goToMyStatus">用学号和手机号查看进度 →</a>
-        </p>
-        <div class="hero-facts">
-          <span>{{ departments.length }} 个直接招新部门</span><span>提交后可查询审核进度</span>
-        </div>
-      </div>
-      <aside class="season-card">
-        <span class="opening-badge" :class="{ closed: !policy.isOpen }">{{
-          policy.isOpen ? "正在接受报名" : "当前未开放"
-        }}</span>
-        <p class="eyebrow">{{ policy.season }} 招新季</p>
-        <h2>开始之前，<br />准备好这三样。</h2>
-        <ol class="preparation-list">
-          <li><strong>学号与联系方式</strong><span>填写本人资料，留意 QQ 和电话。</span></li>
-          <li><strong>一张清晰证件照</strong><span>JPG、PNG 或 WEBP，上传后自动压缩。</span></li>
-          <li><strong>你的意向与兴趣</strong><span>选一个部门，如实介绍想学的方向。</span></li>
-        </ol>
-        <p v-if="policyWindow" class="policy-schedule">{{ policyWindow }}（北京时间）</p>
-        <p v-if="!policy.isOpen">{{ policy.message }} 你仍可先了解部门与报名要求。</p>
-      </aside>
-    </section>
-    <section class="section recruitment-roadmap" aria-labelledby="roadmap-title">
-      <div class="section-heading">
-        <p class="eyebrow">报名怎么走</p>
-        <h2 id="roadmap-title">每一步，都有下一步。</h2>
-      </div>
-      <div class="step-row">
-        <article>
-          <span>01</span>
-          <h3>了解部门</h3>
-          <p>看工作内容和适合的兴趣方向，选择一个意向部门。</p>
-        </article>
-        <article>
-          <span>02</span>
-          <h3>填写并核对</h3>
-          <p>填写资料与证件照，核对无误后正式提交。</p>
-        </article>
-        <article>
-          <span>03</span>
-          <h3>保存报名回执</h3>
-          <p>下载或复制报名回执，妥善保存查询信息。</p>
-        </article>
-        <article>
-          <span>04</span>
-          <h3>查询与等候通知</h3>
-          <p>用学号和手机号查进度，面试安排以工作人员通知为准。</p>
-        </article>
-      </div>
-    </section>
-    <section class="section muted" aria-labelledby="departments-title">
-      <div class="section-heading">
-        <p class="eyebrow">找到你的方向</p>
-        <h2 id="departments-title" tabindex="-1">从感兴趣的事情，认识一个部门。</h2>
-        <p>每次报名选择一个意向部门。不确定时，先看看具体会做什么。</p>
-      </div>
-      <div class="department-grid">
-        <article v-for="(department, index) in profiles" :key="department.name" class="department-card">
-          <button type="button" @click="openDepartment(department.name)">
-            <div class="department-card-top">
-              <span class="department-index">0{{ index + 1 }}</span
-              ><span class="department-access">{{ department.direct ? "可直接报名" : "仅内部调剂" }}</span>
-            </div>
-            <h3>{{ department.name }}</h3>
-            <p class="department-direction">{{ department.direction }}</p>
-            <p>{{ department.summary }}</p>
-            <strong>了解部门<span aria-hidden="true"> →</span></strong>
-          </button>
-        </article>
-      </div>
-    </section>
-    <section class="section freshman-faq" aria-labelledby="faq-title">
-      <div class="section-heading">
-        <p class="eyebrow">先解答你的疑问</p>
-        <h2 id="faq-title">第一次报名，也能心里有数。</h2>
-      </div>
-      <div class="faq-list">
-        <details v-for="faq in faqs" :key="faq.question">
-          <summary>{{ faq.question }}</summary>
-          <p>{{ faq.answer }}</p>
-        </details>
-      </div>
-      <div class="home-next-step">
-        <p>准备好了，就从一张报名表开始。</p>
-        <button class="primary-action" type="button" @click="go('register')">填写我的报名表 →</button>
-      </div>
-    </section>
-  </main>
-  <main :inert="showLogin" v-else-if="view === 'department'" class="page-shell">
+  <StudioHome
+    v-if="view === 'home'"
+    :inert="showLogin"
+    :policy="policy"
+    :policy-window="policyWindow"
+    :profiles="profiles"
+    :faqs="faqs"
+    @navigate="go"
+    @department="openDepartment"
+    @status="goToMyStatus"
+    @section="openHomeSection"
+  />
+  <main :inert="showLogin" v-else-if="view === 'department'" class="page-shell studio-department-page">
     <section class="page-title">
       <a class="back-link" href="#home" @click.prevent="go('home')">← 返回部门介绍</a>
       <p class="eyebrow">{{ departmentProfile.direction }}</p>
@@ -1621,6 +1573,25 @@ watch(
         {{ department.name }}
       </button>
     </div>
+    <section class="studio-department-guide" aria-labelledby="department-guide-title" data-department-guide>
+      <p class="eyebrow">从这里开始</p>
+      <h2 id="department-guide-title">{{ departmentGuide.intro }}</h2>
+      <dl>
+        <div>
+          <dt>适合这样的你</dt>
+          <dd>{{ departmentGuide.interests }}</dd>
+        </div>
+        <div>
+          <dt>现在就能试一试</dt>
+          <dd>{{ departmentGuide.firstStep }}</dd>
+        </div>
+        <div>
+          <dt>可以探索的学习路径</dt>
+          <dd>{{ departmentGuide.practice }}</dd>
+        </div>
+      </dl>
+      <p class="studio-guide-note">以上是入门建议，不是额外考题或录取条件。实际活动与培养安排以部门通知为准。</p>
+    </section>
     <section
       class="department-responsibilities"
       aria-labelledby="department-responsibilities-title"
@@ -2386,18 +2357,41 @@ watch(
           </form>
           <section class="review-notification">
             <h3>联系新生</h3>
-            <p>以下通知基于已保存资料。复制后请自行通过 QQ 或电话联系新生，系统不会自动发送。</p>
+            <p id="notice-help">
+              可直接修改通知，加入 QQ 新生群号码等信息。内容仅在当前页面暂存，复制后请自行通过 QQ
+              或电话联系新生，系统不会自动发送。
+            </p>
             <p v-if="detailDirty" class="notice">有未保存的修改，请先保存后再复制通知。</p>
+            <p v-if="noticeDirty" class="notice" data-notice-unsaved>通知已修改，尚未复制。</p>
+            <label for="notice-text">通知内容</label>
+            <textarea
+              id="notice-text"
+              v-model="noticeText"
+              class="notice-preview"
+              data-notice-editor
+              rows="7"
+              aria-describedby="notice-help"
+              placeholder="填写要发给新生的通知，可加入 QQ 新生群号码。"
+              :disabled="detailBusy || detailLoading"
+            ></textarea>
             <button
               type="button"
               class="secondary-action"
               data-copy-notice
-              :disabled="detailDirty || detailBusy || detailLoading"
+              :disabled="detailDirty || detailBusy || detailLoading || !noticeText.trim()"
               @click="copyNotice"
             >
-              复制已保存的通知
+              复制通知内容
             </button>
-            <pre class="notice-preview">{{ recruitmentNotice(selected) }}</pre>
+            <button
+              type="button"
+              class="secondary-action"
+              data-reset-notice
+              :disabled="detailBusy || detailLoading || noticeDraft === null"
+              @click="resetNotice"
+            >
+              恢复默认通知
+            </button>
           </section>
           <h3>资料更正</h3>
           <p class="review-helper">信息有误时，与新生确认后再更正。更正与审核分别保存，修改会记录到操作历史。</p>
