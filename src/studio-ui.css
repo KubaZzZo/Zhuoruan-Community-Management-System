@@ -1,0 +1,392 @@
+/* Shared application theme, using the homepage palette as the source of truth. */
+:root {
+  --ink: var(--studio-ink);
+  --muted: var(--studio-muted);
+  --line: #ded8e6;
+  --warm-line: var(--line);
+  --surface: var(--studio-paper);
+  --soft: var(--studio-sage);
+  --page-background: var(--studio-paper);
+  --primary: var(--studio-purple);
+  --primary-dark: var(--studio-purple);
+  --primary-soft: var(--studio-sage);
+  --accent: var(--studio-purple);
+  --radius-card: 8px;
+  --shadow: 6px 6px 0 var(--studio-peach);
+  --studio-font: Arial, "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+body {
+  color: var(--ink);
+  background: var(--page-background);
+  font-family: var(--studio-font);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+.page-shell {
+  max-width: 1440px;
+  min-height: calc(100dvh - 300px);
+  margin-inline: auto;
+  padding: 48px 64px 72px;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.page-shell h1,
+.page-shell h2,
+.page-shell h3,
+.admin-gate h2 {
+  color: var(--ink);
+  font-family: var(--studio-font);
+  text-shadow: none;
+}
+
+.page-shell .page-title h1 {
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.035em;
+}
+
+.page-shell .page-title {
+  margin-bottom: 28px;
+}
+
+.page-shell .page-title p:not(.eyebrow),
+.form-section-title p,
+.form-side-panel p:not(.eyebrow),
+.detail-note p,
+.detail-facts dt,
+.status-result p {
+  color: var(--muted);
+}
+
+.eyebrow,
+.status-result > span,
+.form-side-panel h2,
+.field-name em:not(.required-label) {
+  color: var(--primary);
+}
+
+.eyebrow {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.page-shell .primary-action,
+.admin-gate .primary-action,
+.secondary-action,
+.admin-entry {
+  min-height: 44px;
+  padding: 10px 22px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  color: var(--primary);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.page-shell .primary-action,
+.admin-gate .primary-action {
+  min-height: 48px;
+  border-width: 2px;
+  background: var(--studio-lime);
+}
+
+.page-shell .primary-action:hover,
+.admin-gate .primary-action:hover,
+.secondary-action:hover,
+.admin-entry:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--soft);
+  transform: none;
+}
+
+.toolbar-row .secondary-action.active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--studio-lime);
+}
+
+.page-shell
+  :is(
+    .form-panel,
+    .detail-panel,
+    .admin-toolbar,
+    .table-wrap,
+    .form-side-panel,
+    .form-section,
+    .status-panel,
+    .status-result,
+    .application-review,
+    .recruitment-receipt
+  ),
+.admin-gate,
+.studio-department-page .profile-grid article {
+  border: 2px solid var(--studio-line);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.form-side-panel,
+.status-panel,
+.admin-toolbar,
+.admin-gate {
+  --panel-padding: 24px;
+  padding: var(--panel-padding);
+}
+
+:is(.form-side-panel, .status-panel, .admin-toolbar, .admin-gate) > .studio-panel-bar {
+  grid-column: 1 / -1;
+  margin: calc(-1 * var(--panel-padding)) calc(-1 * var(--panel-padding)) 8px;
+  border-radius: 6px 6px 0 0;
+  background: var(--soft);
+}
+
+.form-side-panel > .studio-panel-bar,
+.admin-gate > .studio-panel-bar {
+  margin-bottom: 24px;
+}
+
+.form-section-title {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.form-section-title > span,
+.journey-number {
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  color: var(--primary);
+  background: var(--soft);
+}
+
+.page-shell :is(input, select, textarea),
+.admin-gate input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.page-shell label,
+.page-shell th,
+.page-shell td,
+.admin-gate label {
+  color: var(--ink);
+}
+
+.page-shell :is(input, select, textarea):focus,
+.admin-gate input:focus {
+  border-color: var(--primary);
+  outline: 2px solid var(--studio-lime);
+  outline-offset: 2px;
+}
+
+.page-shell .field-invalid :is(input, select, textarea) {
+  border-color: var(--danger);
+}
+
+.form-section-links button,
+.freshman-journey button,
+.department-switch button,
+.privacy-details,
+.lookup-help,
+.detail-note,
+.notice-preview,
+.photo-frame {
+  border-color: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.freshman-journey button.current,
+.department-switch button.active,
+.department-switch button:hover,
+.form-section-links button:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--soft);
+}
+
+.freshman-journey .current .journey-number {
+  color: var(--primary);
+  background: var(--studio-lime);
+}
+
+.progress-track {
+  background: var(--soft);
+}
+
+.progress-track span {
+  background: var(--primary);
+  box-shadow: none;
+}
+
+.page-shell .photo-frame {
+  background: var(--soft);
+}
+
+.sticky-actions {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.status-page .status-panel,
+.status-page .status-result,
+.status-page .recruitment-receipt {
+  max-width: 640px;
+}
+
+.status-page .status-panel :is(label, span, input),
+.status-page .status-result :is(h2, p, span) {
+  color: var(--ink);
+}
+
+.status-page .status-panel .studio-panel-bar span {
+  color: var(--primary);
+}
+
+.status-page .status-result > span,
+.status-page .status-result .status-badge,
+.receipt-code-row .submit-id {
+  color: var(--primary);
+}
+
+.status-guidance,
+.interview-arrangement,
+.receipt-code-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--soft);
+}
+
+.status-badge {
+  color: var(--primary);
+  background: var(--soft);
+}
+
+.review-roster-panel .review-list-table caption {
+  border-bottom: 2px solid var(--studio-line);
+  background: var(--soft);
+}
+
+.page-shell th {
+  background: var(--soft);
+}
+
+.page-shell td {
+  background: var(--surface);
+}
+
+.review-workspace .status-count {
+  border-color: var(--line);
+  border-radius: var(--radius-card);
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.review-workspace .status-count.active,
+.review-workspace .status-count:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--soft);
+}
+
+.review-workspace .detail-panel .detail-note,
+.review-workspace .notice-preview {
+  border-color: var(--line);
+  background: var(--soft);
+}
+
+.admin-gate {
+  box-shadow: 8px 8px 0 var(--studio-lime);
+}
+
+.admin-gate .modal-close {
+  top: 2px;
+  right: 4px;
+  color: var(--primary);
+  background: transparent;
+}
+
+.admin-gate > .studio-panel-bar {
+  padding-right: 48px;
+}
+
+.site-footer {
+  color: var(--muted);
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.site-footer strong {
+  color: var(--primary);
+}
+
+@media (max-width: 1100px) {
+  .page-shell {
+    padding: 36px 32px 56px;
+  }
+}
+
+@media (max-width: 900px) {
+  .site-header.studio-header {
+    gap: 0 12px;
+    padding: 6px 16px;
+  }
+
+  .studio-header .nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .studio-header .nav.studio-home-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    padding: 28px 20px 48px;
+  }
+
+  .form-side-panel,
+  .status-page .status-panel,
+  .review-workspace .admin-toolbar,
+  .admin-gate {
+    --panel-padding: 20px;
+    padding: var(--panel-padding);
+  }
+
+  .form-side-panel > .studio-panel-bar {
+    margin-bottom: 18px;
+  }
+
+  .form-section-title {
+    padding-bottom: 14px;
+  }
+
+  .sticky-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .sticky-actions .primary-action {
+    flex: 1 1 100%;
+  }
+}

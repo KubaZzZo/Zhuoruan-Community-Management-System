@@ -1465,13 +1465,13 @@ watch(
 
 <template>
   <a class="skip-link" href="#page-title" :inert="showLogin" @click.prevent="focusContent('page-title')">跳到内容</a>
-  <header class="site-header" :class="{ 'studio-header': view === 'home' }" :inert="showLogin">
+  <header class="site-header studio-header" :inert="showLogin">
     <a class="brand" href="#home" @click.prevent="go('home')"
       ><img src="/zhuoruan.png" alt="卓软信息工作室标志" width="52" height="52" /><span class="brand-copy"
         ><strong>卓软信息工作室</strong></span
       ></a
     >
-    <nav class="nav" aria-label="网站导航">
+    <nav class="nav" :class="{ 'studio-home-nav': view === 'home' }" aria-label="网站导航">
       <a
         href="#home"
         :aria-current="view === 'home' ? 'page' : undefined"
@@ -1527,6 +1527,7 @@ watch(
       aria-modal="true"
       aria-labelledby="staff-login-title"
     >
+      <div class="studio-panel-bar" aria-hidden="true"><span>卓软 / 工作人员</span><span>— □</span></div>
       <button class="modal-close" type="button" aria-label="关闭登录" @click="closeLogin">×</button>
       <p class="eyebrow">工作人员</p>
       <h2 id="staff-login-title">部长 / 社长登录</h2>
@@ -1669,6 +1670,7 @@ watch(
     </p>
     <div class="application-layout">
       <aside class="form-side-panel">
+        <div class="studio-panel-bar" aria-hidden="true"><span>报名 / YOUR APPLICATION</span><span>— □ ×</span></div>
         <p class="eyebrow">填写进度</p>
         <h2>{{ progress }}%</h2>
         <div
@@ -1936,6 +1938,7 @@ watch(
     <RecruitmentReceipt v-if="receipt" :record="receipt" @copy="copyReceipt" @download="downloadReceipt(receipt)" />
     <p v-if="message" class="notice" role="status">{{ message }}</p>
     <form class="status-panel" data-status-lookup @submit.prevent="searchStatus">
+      <div class="studio-panel-bar" aria-hidden="true"><span>进度 / APPLICATION STATUS</span><span>— □ ×</span></div>
       <label
         ><span>学号</span><input v-model.trim="statusQuery.studentId" name="studentId" inputmode="numeric"
       /></label>
@@ -1984,6 +1987,7 @@ watch(
       {{ adminNotice }}
     </p>
     <section class="admin-toolbar">
+      <div class="studio-panel-bar" aria-hidden="true"><span>卓软 / 招新管理</span><span>— □ ×</span></div>
       <div class="toolbar-row">
         <button type="button" class="secondary-action" :class="{ active: !rosterMode }" @click="showApplications">
           报名名单
